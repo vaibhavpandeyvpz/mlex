@@ -10,8 +10,8 @@ This crate is the engine underneath the [`mlex` npm package](https://www.npmjs.c
 
 - **Zero system dependencies at runtime.** `mlx` and `mlx-c` are vendored, pinned, and built from source via `build.rs` (CMake). `cargo build` on a fresh checkout is all it takes.
 - **Broad quantization support.** Dense bf16/fp16, affine 2/3/4/5/6/8-bit at any group size, `mxfp4`, `mxfp8`, `nvfp4`, and mixed per-layer precision checkpoints such as **OptiQ** or Google **QAT** exports.
-- **Wide architecture coverage.** Qwen2/Qwen3/Qwen3.5 (dense + MoE), Gemma4 (text + multi-modal), NemotronH (hybrid Mamba2/attention), DharaAR, and vanilla-Llama-shaped checkpoints (e.g. MiniCPM5) — see the table below.
-- **Multi-modal.** Gemma4 checkpoints with vision/audio towers accept images, audio clips, and video (uniformly sampled into frames) alongside text, in the same chat turn.
+- **Wide architecture coverage.** Qwen2/Qwen3/Qwen3.5 (dense + MoE + vision-capable variants), Gemma4 (text + multi-modal), NemotronH (hybrid Mamba2/attention), DharaAR, and vanilla-Llama-shaped checkpoints (e.g. MiniCPM5) — see the table below.
+- **Multi-modal.** Image input works on vision-capable Qwen3.5 checkpoints, while Gemma4 checkpoints with vision/audio towers additionally accept audio clips and video (uniformly sampled into frames) alongside text.
 - **System prompts.** A leading `role: "system"` message is rendered by every supported chat template, exactly like the OpenAI/Anthropic system role.
 - **Reasoning / "thinking".** Opt into Qwen3/3.5/3.6, Gemma4, MiniCPM5, and NemotronH's native "thinking" mode, with an optional token budget and the reasoning span automatically split out of the final answer.
 - **Tool calling.** Render OpenAI-style tool/function schemas into the model's native chat template and parse tool calls back out of the reply (Hermes-style JSON and Gemma's native key/value format).
@@ -24,8 +24,8 @@ This crate is the engine underneath the [`mlex` npm package](https://www.npmjs.c
 | --------------------------------------------- | -------------------- | ---------------------------------------------------------- |
 | `qwen2`, `llama`                              | Qwen2 / Llama-shaped | Also covers MiniCPM5 and similar vanilla-GQA checkpoints   |
 | `qwen3`                                       | Qwen3                | Dense, with QK-norm                                        |
-| `qwen3_5`, `qwen3_5_moe` (+ `_text` variants) | Qwen3.5              | Dense and Mixture-of-Experts                               |
-| `gemma4`, `gemma4_text`                       | Gemma4               | Text-only and multi-modal (vision + audio) variants        |
+| `qwen3_5`, `qwen3_5_moe` (+ `_text` variants) | Qwen3.5              | Dense, Mixture-of-Experts, and vision-capable variants     |
+| `gemma4`, `gemma4_text`, `gemma4_unified`, `gemma4_unified_text` | Gemma4 | Text-only, unified, and multi-modal (vision + audio) variants |
 | `nemotron_h`                                  | NemotronH            | Hybrid Mamba2 / GatedDelta / attention layers              |
 | `dhara_ar`                                    | DharaAR              | Canon convolution layers, post-RoPE QK-norm, logit softcap |
 
@@ -198,7 +198,7 @@ for call in reply.tool_calls {
 
 Feed a tool's result back in as a `role: "tool"` message (see `ChatMessage`'s `tool_call_id` field) and call `generate_cached` again to continue the conversation.
 
-### Multi-modal input (Gemma4)
+### Multi-modal input
 
 ```rust
 use mlex::tokenizer::ChatMessage;
@@ -212,7 +212,7 @@ if session.supports_images() {
 }
 ```
 
-`ChatMessage::user_with_audio` and `ChatMessage::user_with_video` work the same way; `Session::supports_audio()` gates audio-capable checkpoints. Video is uniformly sampled into frames and processed through the same vision tower as still images.
+`Session::supports_images()` is true on image-capable Qwen3.5 and Gemma4 checkpoints. `ChatMessage::user_with_audio` and `ChatMessage::user_with_video` are additionally supported on Gemma4 checkpoints with audio/vision towers; `Session::supports_audio()` gates the audio path, and video is uniformly sampled into frames and processed through the same vision tower as still images.
 
 ## API surface
 

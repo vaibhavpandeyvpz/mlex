@@ -10,8 +10,8 @@ Under the hood, this package wraps the [`mlex`](https://crates.io/crates/mlex) R
 
 - **No Python, no system MLX install.** Everything needed to run MLX models is compiled into the native addon.
 - **Broad quantization support.** Dense bf16/fp16, affine 2/3/4/5/6/8-bit at any group size, `mxfp4`, `mxfp8`, `nvfp4`, and mixed per-layer precision checkpoints such as **OptiQ** or Google **QAT** exports.
-- **Wide architecture coverage.** Qwen2/Qwen3/Qwen3.5 (dense + MoE), Gemma4 (text + multi-modal), NemotronH, DharaAR, and vanilla-Llama-shaped checkpoints (e.g. MiniCPM5).
-- **Multi-modal.** Attach images, audio, and video directly to a chat message on Gemma4 checkpoints with vision/audio support.
+- **Wide architecture coverage.** Qwen2/Qwen3/Qwen3.5 (dense + MoE + vision-capable variants), Gemma4 (text + multi-modal), NemotronH, DharaAR, and vanilla-Llama-shaped checkpoints (e.g. MiniCPM5).
+- **Multi-modal.** Attach images on vision-capable Qwen3.5 or Gemma4 checkpoints, and attach audio/video on Gemma4 checkpoints with the corresponding towers.
 - **System prompts.** A leading `{ role: 'system' }` message is rendered by every supported chat template, exactly like the OpenAI/Anthropic system role.
 - **Reasoning / "thinking".** Opt into native "thinking" mode on the families that support it, with an optional token budget and the reasoning span split out of `text` automatically.
 - **Usage metrics.** Every reply includes an OpenAI/Anthropic-style `usage` block (`promptTokens`, `cachedTokens`, `completionTokens`).
@@ -163,7 +163,7 @@ for (const call of toolCalls) {
 
 Feed a tool's result back in as a `{ role: 'tool', toolCallId, content }` message (and record the assistant's `toolCalls` on its turn) to continue the conversation across a tool round-trip.
 
-### Multi-modal input (Gemma4)
+### Multi-modal input
 
 ```js
 import { readFileSync } from "node:fs";
@@ -181,7 +181,7 @@ if (model.supportsImages()) {
 }
 ```
 
-`audios` and `videos` fields work the same way (gated by `model.supportsAudio()` / `model.supportsImages()` respectively — video frames are routed through the vision tower). All three can be attached to the same message alongside text.
+`model.supportsImages()` is true on image-capable Qwen3.5 and Gemma4 checkpoints. `audios` and `videos` are additionally supported on Gemma4 checkpoints with the corresponding towers; `model.supportsAudio()` gates audio input, and video frames are routed through the vision tower. All supported media types can be attached to the same message alongside text.
 
 ## API reference
 
@@ -260,8 +260,8 @@ Full type definitions ship in `index.d.ts`.
 | --------------------------------------------- | -------------------- | ---------------------------------------------------------- |
 | `qwen2`, `llama`                              | Qwen2 / Llama-shaped | Also covers MiniCPM5 and similar vanilla-GQA checkpoints   |
 | `qwen3`                                       | Qwen3                | Dense, with QK-norm                                        |
-| `qwen3_5`, `qwen3_5_moe` (+ `_text` variants) | Qwen3.5              | Dense and Mixture-of-Experts                               |
-| `gemma4`, `gemma4_text`                       | Gemma4               | Text-only and multi-modal (vision + audio) variants        |
+| `qwen3_5`, `qwen3_5_moe` (+ `_text` variants) | Qwen3.5              | Dense, Mixture-of-Experts, and vision-capable variants     |
+| `gemma4`, `gemma4_text`, `gemma4_unified`, `gemma4_unified_text` | Gemma4 | Text-only, unified, and multi-modal (vision + audio) variants |
 | `nemotron_h`                                  | NemotronH            | Hybrid Mamba2 / GatedDelta / attention layers              |
 | `dhara_ar`                                    | DharaAR              | Canon convolution layers, post-RoPE QK-norm, logit softcap |
 
