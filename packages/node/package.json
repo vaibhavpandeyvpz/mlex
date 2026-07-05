@@ -1,0 +1,55 @@
+{
+  "name": "mlex",
+  "version": "0.1.0",
+  "description": "Run your favorite LLMs (Qwen, Gemma4, NemotronH, DharaAR, ...) at blazing-fast speeds on Apple Silicon, with multi-modal (image/audio/video) support, from JavaScript/TypeScript.",
+  "license": "MIT",
+  "homepage": "https://github.com/vaibhavpandeyvpz/mlex",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vaibhavpandeyvpz/mlex.git",
+    "directory": "packages/node"
+  },
+  "keywords": [
+    "mlx",
+    "llm",
+    "inference",
+    "apple-silicon",
+    "quantization",
+    "qwen",
+    "gemma"
+  ],
+  "main": "index.js",
+  "types": "index.d.ts",
+  "readme": "README.md",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "README.md",
+    "LICENSE",
+    "*.node"
+  ],
+  "napi": {
+    "binaryName": "mlex",
+    "packageName": "mlex",
+    "targets": [
+      "aarch64-apple-darwin"
+    ]
+  },
+  "scripts": {
+    "build": "napi build --platform --release --manifest-path ../../crates/mlex-node/Cargo.toml --output-dir . --js index.js --dts index.d.ts",
+    "build:debug": "napi build --platform --manifest-path ../../crates/mlex-node/Cargo.toml --output-dir . --js index.js --dts index.d.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.7.2",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^3.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">= 18"
+  }
+}

@@ -1,0 +1,20 @@
+[package]
+name = "mlex-node"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Node.js (NAPI-RS) native addon glue for mlex; not published to crates.io"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+mlex = { path = "../mlex", version = "0.1.0" }
+napi = { version = "3", features = ["napi10", "async", "tokio_fs", "serde-json"] }
+napi-derive = "3"
+serde_json.workspace = true
+
+[build-dependencies]
+napi-build = "2"

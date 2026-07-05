@@ -1,0 +1,162 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Test suites discover models under this directory (HF-hub cache layout);
+  # see crates/mlex/tests/common and packages/node/test/models.ts.
+  # Matrix jobs pass one explicit HF repo each; the coverage job falls back
+  # to the script's default minimal model set.
+  MLEX_MODELS_DIR: ${{ github.workspace }}/.ci-models
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-and-test:
+    name: build-and-test (${{ matrix.label }})
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: dhara-250m-optiq
+            hf_repo: mlx-community/dhara-250m-OptiQ-4bit
+          - label: gemma4-e2b-optiq
+            hf_repo: mlx-community/gemma-4-e2b-it-OptiQ-4bit
+          - label: gemma4-e2b-qat
+            hf_repo: mlx-community/gemma-4-E2B-it-qat-4bit
+          - label: gemma4-e4b-qat-optiq
+            hf_repo: mlx-community/gemma-4-e4b-it-qat-OptiQ-4bit
+          - label: minicpm5-1b-optiq
+            hf_repo: mlx-community/MiniCPM5-1B-OptiQ-4bit
+          - label: nemotron-4b-optiq
+            hf_repo: mlx-community/NVIDIA-Nemotron-3-Nano-4B-OptiQ-4bit
+          - label: qwen25-coder-7b
+            hf_repo: mlx-community/Qwen2.5-Coder-7B-Instruct-4bit
+          - label: qwen3-06b-4bit
+            hf_repo: mlx-community/Qwen3-0.6B-4bit
+          - label: qwen3-06b-bf16
+            hf_repo: mlx-community/Qwen3-0.6B-bf16
+          - label: qwen35-08b-optiq
+            hf_repo: mlx-community/Qwen3.5-0.8B-OptiQ-4bit
+          - label: qwen35-2b-optiq
+            hf_repo: mlx-community/Qwen3.5-2B-OptiQ-4bit
+          - label: qwen35-4b-optiq
+            hf_repo: mlx-community/Qwen3.5-4B-OptiQ-4bit
+          - label: qwen35-9b-mlx
+            hf_repo: mlx-community/Qwen3.5-9B-MLX-4bit
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo + vendored MLX build
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: mlx-vendor-${{ hashFiles('crates/mlex/vendor/**') }}
+
+      - name: Download test models
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: ./scripts/ci-download-models.sh "$MLEX_MODELS_DIR" "${{ matrix.hf_repo }}"
+
+      - name: Install ffmpeg
+        # Required by crates/mlex/src/media/video.rs (frame extraction)
+        # for multi-modal video tests. `brew install` is a no-op if the
+        # GitHub-hosted runner image already ships ffmpeg.
+        run: brew install ffmpeg
+
+      - name: Build measure_memory helper
+        # Also builds mlex in release mode, which `cargo test
+        # --release` below then reuses from the shared target dir.
+        run: cargo build --release --example measure_memory -p mlex
+
+      - name: Run Rust test suite
+        # Scoped to mlex (mlex-node is exercised via the Node/Vitest suite
+        # below, not `cargo test`). Each matrix entry downloads exactly one
+        # explicitly-listed HF checkpoint so the full Rust+Node path runs once
+        # per selected model.
+        run: cargo test --release -p mlex -- --test-threads=1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: packages/node/package-lock.json
+
+      - name: Install Node package dependencies
+        working-directory: packages/node
+        run: npm ci
+
+      - name: Build native addon
+        working-directory: packages/node
+        run: npm run build
+
+      - name: Run Node test suite
+        working-directory: packages/node
+        run: npm test
+
+  coverage:
+    runs-on: macos-latest
+    needs: build-and-test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo + vendored MLX build
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: mlx-vendor-${{ hashFiles('crates/mlex/vendor/**') }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: packages/node/package-lock.json
+
+      - name: Download test models
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: ./scripts/ci-download-models.sh "$MLEX_MODELS_DIR"
+
+      - name: Install ffmpeg
+        run: brew install ffmpeg
+
+      - name: Install cargo-llvm-cov
+        run: cargo install cargo-llvm-cov --locked
+
+      - name: Build measure_memory helper
+        run: cargo build --release --example measure_memory -p mlex
+
+      - name: Rust coverage (lcov)
+        run: ./scripts/coverage-rust.sh --all
+
+      - name: Install Node package dependencies
+        working-directory: packages/node
+        run: npm ci
+
+      - name: Build native addon
+        working-directory: packages/node
+        run: npm run build
+
+      - name: Node coverage (lcov)
+        working-directory: packages/node
+        run: npm run test:coverage
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            target/llvm-cov/lcov.info
+            packages/node/coverage/**

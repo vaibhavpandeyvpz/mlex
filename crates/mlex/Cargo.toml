@@ -1,0 +1,36 @@
+[package]
+name = "mlex"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Safe, idiomatic Rust runtime for Apple MLX: quantized LLM inference (Qwen, Gemma4, NemotronH, DharaAR, ...) with multi-modal support"
+readme = "README.md"
+keywords = ["mlx", "llm", "inference", "apple-silicon", "quantization"]
+categories = ["science", "api-bindings"]
+links = "mlxc"
+# `vendor/mlx` and `vendor/mlx-c` are pinned upstream C++ checkouts (with
+# their own .git metadata stripped) built by build.rs via CMake. They are
+# included explicitly since they live under the crate root but wouldn't be
+# picked up by `cargo publish`'s default VCS-tracked-files heuristic in
+# every checkout state.
+include = ["src/**/*", "build.rs", "vendor/**/*", "Cargo.toml", "README.md", "LICENSE"]
+
+[dependencies]
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+half = "2"
+tokenizers = "0.22"
+minijinja = { version = "2", features = ["json", "loader"] }
+minijinja-contrib = { version = "2", features = ["pycompat"] }
+rand = "0.8"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "rayon"] }
+rustfft = "6"
+
+[build-dependencies]
+bindgen = "0.72"
+cmake = "0.1"
+
+[dev-dependencies]
+libc = "0.2"
