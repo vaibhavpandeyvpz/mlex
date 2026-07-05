@@ -25,13 +25,17 @@ else
   )
 fi
 
-python3 -m pip install --quiet --upgrade "huggingface_hub[cli]"
+VENV_DIR="$(mktemp -d "${TMPDIR:-/tmp}/mlex-hf-cli.XXXXXX")"
+trap 'rm -rf "$VENV_DIR"' EXIT
+python3 -m venv "$VENV_DIR"
+"$VENV_DIR/bin/python" -m pip install --quiet --upgrade "huggingface_hub[cli]"
+HF_CLI="$VENV_DIR/bin/huggingface-cli"
 
 for repo in "${MODELS[@]}"; do
   echo "Downloading $repo -> $TARGET_DIR"
   if [[ -n "${HF_TOKEN:-}" ]]; then
-    huggingface-cli download "$repo" --cache-dir "$TARGET_DIR" --token "$HF_TOKEN"
+    "$HF_CLI" download "$repo" --cache-dir "$TARGET_DIR" --token "$HF_TOKEN"
   else
-    huggingface-cli download "$repo" --cache-dir "$TARGET_DIR"
+    "$HF_CLI" download "$repo" --cache-dir "$TARGET_DIR"
   fi
 done
