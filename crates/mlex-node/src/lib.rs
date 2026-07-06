@@ -140,8 +140,7 @@ impl JsToolCall {
 ///
 /// Passing `tools` renders an OpenAI-style function schema into the chat
 /// template and parses any tool calls back out of the reply (populating
-/// [`JsGenerateResult::tool_calls`]) - there is no separate
-/// `generateWithTools` method, this is the only entry point.
+/// [`JsGenerateResult::tool_calls`]) - `generate` is the only entry point.
 #[napi(object)]
 pub struct JsGenerateOptions {
     pub max_tokens: Option<u32>,

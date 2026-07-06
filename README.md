@@ -88,7 +88,7 @@ const { text } = await model.generate(messages);
 console.log(text);
 ```
 
-`generate` is the single entry point on the JS side: it always resolves `{ text, toolCalls }`, and there's no separate session/conversation object or `generateWithTools` method — tools are just another `options` field. Multi-turn conversations, streaming, system prompts, sampling controls, tool calling, and multi-modal input all work the same way in both languages — see the crate/package READMEs linked above for the full API with examples, or jump straight to a few below.
+`generate` is the single entry point on the JS side: it always resolves `{ text, toolCalls }`, and there's no separate session/conversation object — tools are just another `options` field. Multi-turn conversations, streaming, system prompts, sampling controls, tool calling, and multi-modal input all work the same way in both languages — see the crate/package READMEs linked above for the full API with examples, or jump straight to a few below.
 
 ### System prompts
 
