@@ -12,7 +12,7 @@ use crate::media::image::{preprocess_image_bytes, ProcessedImage};
 use crate::media::video::extract_video_frames;
 use crate::models::Model;
 use crate::ops;
-use crate::prompt_cache::PromptCachePool;
+use crate::prompt_cache::{PromptCacheConfig, PromptCachePool};
 use crate::reasoning::{self, ReasoningBudget};
 use crate::sampling::{Sampler, SamplingConfig};
 use crate::streaming::{StreamClassifier, TokenKind};
@@ -214,13 +214,20 @@ fn register_extra_eos_ids(model_dir: &Path, tokenizer: &mut Tokenizer) {
 
 impl Session {
     pub fn load(model_dir: &Path) -> Result<Self> {
+        Self::load_with_cache_config(model_dir, PromptCacheConfig::default())
+    }
+
+    /// Like [`Session::load`], but with the prompt-cache pool's sizing
+    /// (max entries, idle TTL, minimum-cacheable-tokens gate) overridden
+    /// instead of [`PromptCacheConfig::default`].
+    pub fn load_with_cache_config(model_dir: &Path, cache_config: PromptCacheConfig) -> Result<Self> {
         let model = Model::load(model_dir)?;
         let mut tokenizer = Tokenizer::load(model_dir)?;
         register_extra_eos_ids(model_dir, &mut tokenizer);
         Ok(Session {
             model,
             tokenizer,
-            prompt_cache: Mutex::new(PromptCachePool::with_defaults()),
+            prompt_cache: Mutex::new(PromptCachePool::from_config(cache_config)),
         })
     }
 

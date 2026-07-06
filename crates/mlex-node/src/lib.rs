@@ -9,6 +9,7 @@ use napi_derive::napi;
 use serde_json::Value as JsonValue;
 
 use mlex::generate::{FinishReason, GenerateOptions, Session};
+use mlex::prompt_cache::PromptCacheConfig;
 use mlex::sampling::SamplingConfig;
 use mlex::tokenizer::{AudioContent, ChatMessage, ContentPart, ImageContent, VideoContent};
 use mlex::tools::{Tool, ToolCall, ToolFunction};
@@ -229,6 +230,39 @@ fn finish_reason_str(r: FinishReason) -> &'static str {
     }
 }
 
+/// Sizing knobs for [`MlexModel::load`]'s internal prompt-cache pool.
+/// Unset fields keep [`PromptCacheConfig::default`]'s value (16 entries, a
+/// 5 minute idle TTL, an 8-token minimum-cacheable-prompt gate).
+#[napi(object)]
+#[derive(Default)]
+pub struct JsPromptCacheConfig {
+    /// Maximum number of cached prefixes kept at once (LRU-evicted beyond
+    /// this).
+    pub max_entries: Option<u32>,
+    /// How long, in seconds, an unused entry is kept before it's evicted.
+    pub ttl_seconds: Option<u32>,
+    /// Prompts shorter than this many tokens are never cached (not worth
+    /// occupying a pool slot to save re-running a trivially short prefix).
+    pub min_cacheable_tokens: Option<u32>,
+}
+
+impl JsPromptCacheConfig {
+    fn into_core(self) -> PromptCacheConfig {
+        let defaults = PromptCacheConfig::default();
+        PromptCacheConfig {
+            max_entries: self.max_entries.map(|v| v as usize).unwrap_or(defaults.max_entries),
+            ttl: self
+                .ttl_seconds
+                .map(|v| std::time::Duration::from_secs(v as u64))
+                .unwrap_or(defaults.ttl),
+            min_cacheable_tokens: self
+                .min_cacheable_tokens
+                .map(|v| v as usize)
+                .unwrap_or(defaults.min_cacheable_tokens),
+        }
+    }
+}
+
 /// A loaded MLX language model, ready to chat.
 ///
 /// There is no session/conversation handle to manage: like the OpenAI and
@@ -266,10 +300,16 @@ impl MlexModel {
     /// scheme MLX ships (affine 2-8 bit at any group size, mxfp4, mxfp8,
     /// nvfp4) and mixed per-layer precision checkpoints such as OptiQ or
     /// Google QAT exports, wherever the underlying architecture is wired up.
+    ///
+    /// `promptCache` overrides the sizing of the model's internal
+    /// prompt-cache pool (max entries / idle TTL / minimum-cacheable-tokens
+    /// gate); omit it to keep the defaults.
     #[napi(factory)]
-    pub async fn load(model_path: String) -> Result<Self> {
+    pub async fn load(model_path: String, prompt_cache: Option<JsPromptCacheConfig>) -> Result<Self> {
+        let cache_config = prompt_cache.unwrap_or_default().into_core();
         let session = napi::bindgen_prelude::spawn_blocking(move || {
-            Session::load(&PathBuf::from(model_path)).map_err(|e| Error::from_reason(e.to_string()))
+            Session::load_with_cache_config(&PathBuf::from(model_path), cache_config)
+                .map_err(|e| Error::from_reason(e.to_string()))
         })
         .await
         .map_err(|e| Error::from_reason(format!("load task panicked: {e}")))??;

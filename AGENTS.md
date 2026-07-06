@@ -245,7 +245,17 @@ Pool semantics: LRU + TTL eviction, pinning support, and a
 wastefully cached. Callers can opt a single call out entirely via
 `GenerateOptions::prompt_cache: Some(false)` (`promptCache` on the Node
 binding): the call prefills from scratch and neither reads from nor writes
-to the pool. Cache reuse leverages MLX's cheap `Array::clone`
+to the pool.
+
+Pool *sizing* (max entries / TTL / min-cacheable-tokens) is a load-time
+setting, not a per-call one: `Session::load_with_cache_config` takes a
+`PromptCacheConfig` (`Session::load` just calls it with
+`PromptCacheConfig::default()`), and the Node binding's
+`MlexModel.load(modelPath, promptCache?)` takes an optional
+`JsPromptCacheConfig` (`maxEntries`/`ttlSeconds`/`minCacheableTokens`) as
+its second argument. Don't confuse this with `JsGenerateOptions.promptCache`
+(the per-call boolean) — same name, different level: one sizes the pool
+once when the model is loaded, the other opts one call out of it. Cache reuse leverages MLX's cheap `Array::clone`
 (reference-counted, not a deep copy) for the stored KV state.
 
 `generate_cached` returns a `GenerateReply { text, tool_calls, usage,

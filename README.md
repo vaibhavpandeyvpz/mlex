@@ -16,7 +16,7 @@ Why another inference runtime? Because Apple Silicon deserves a first-class, dep
 - 💬 **System prompts.** A leading `role: "system"` message is a first-class part of every supported chat template, the same convention as the OpenAI/Anthropic APIs.
 - 🧩 **Reasoning / "thinking".** Opt into native "thinking" mode on the families that support it, with an optional token budget and the reasoning span split out of the final answer automatically.
 - 🛠️ **Tool calling.** OpenAI-style function schemas in, parsed tool calls out — Hermes-style JSON and Gemma's native format both supported.
-- ⚡ **Automatic, stateless prompt caching.** No session handle to manage: pass the full conversation on every call (OpenAI/Anthropic-style) and a transparent cache pool reuses KV state for whatever prefix was already computed, even across independent calls sharing a system prompt.
+- ⚡ **Automatic, stateless prompt caching.** No session handle to manage: pass the full conversation on every call (OpenAI/Anthropic-style) and a transparent cache pool reuses KV state for whatever prefix was already computed, even across independent calls sharing a system prompt. Pool sizing (max entries, idle TTL, minimum-cacheable-tokens) is configurable at load time, and a single call can opt out of the pool entirely.
 - 🧵 **Streaming.** Every generation entry point supports per-token callbacks.
 
 ## Supported models

@@ -15,7 +15,7 @@ This crate is the engine underneath the [`mlex.js` npm package](https://www.npmj
 - **System prompts.** A leading `role: "system"` message is rendered by every supported chat template, exactly like the OpenAI/Anthropic system role.
 - **Reasoning / "thinking".** Opt into Qwen3/3.5/3.6, Gemma4, MiniCPM5, and NemotronH's native "thinking" mode, with an optional token budget and the reasoning span automatically split out of the final answer.
 - **Tool calling.** Render OpenAI-style tool/function schemas into the model's native chat template and parse tool calls back out of the reply (Hermes-style JSON and Gemma's native key/value format).
-- **Stateless, automatic prompt caching.** [`Session::generate_cached`] takes the full message transcript on every call (mirroring the OpenAI/Anthropic chat APIs) and transparently reuses KV cache state for whatever prefix a previous call already computed — no session handle to manage, no explicit cache invalidation.
+- **Stateless, automatic prompt caching.** [`Session::generate_cached`] takes the full message transcript on every call (mirroring the OpenAI/Anthropic chat APIs) and transparently reuses KV cache state for whatever prefix a previous call already computed — no session handle to manage, no explicit cache invalidation. Pool sizing is configurable via [`Session::load_with_cache_config`]; a single call can opt out via [`GenerateOptions::prompt_cache`].
 - **Streaming.** Every generation entry point accepts an `on_token` callback invoked once per generated token.
 
 ## Supported architectures
@@ -103,6 +103,20 @@ messages.push(ChatMessage::assistant(reply.text));
 messages.push(ChatMessage::user("What's its population?"));
 let reply2 = session.generate_cached(&messages, None, GenerateOptions::default(), |_| true)?;
 ```
+
+The pool itself (LRU + idle-TTL eviction, keyed by longest exact-prefix match on token ids) is sized once when the model loads — [`Session::load`] uses [`prompt_cache::PromptCacheConfig::default`] (16 entries, a 5 minute idle TTL, an 8-token minimum before a prefix is worth caching), and [`Session::load_with_cache_config`] lets you override it:
+
+```rust
+use mlex::prompt_cache::PromptCacheConfig;
+use std::time::Duration;
+
+let session = Session::load_with_cache_config(
+    Path::new("./models/Qwen3-0.6B-4bit"),
+    PromptCacheConfig { max_entries: 32, ttl: Duration::from_secs(60), min_cacheable_tokens: 16 },
+)?;
+```
+
+To opt a single call out of the pool entirely (neither read nor write), set [`GenerateOptions::prompt_cache`] to `Some(false)` instead — the two are independent: `load_with_cache_config` sizes the pool once, `GenerateOptions::prompt_cache` toggles pool use per call.
 
 ### Sampling
 
@@ -217,6 +231,7 @@ if session.supports_images() {
 ## API surface
 
 - [`generate::Session`] — load a model directory, generate/stream completions, all cache-aware via `generate_cached`.
+- [`prompt_cache::PromptCacheConfig`] — override the internal prompt-cache pool's sizing (max entries / idle TTL / minimum-cacheable-tokens) via `Session::load_with_cache_config`.
 - [`tokenizer::ChatMessage`] / [`tokenizer::ContentPart`] — multi-part (text/image/audio/video) chat turns.
 - [`tools`] — `Tool`, `ToolCall`, `ToolCallFormat`, and `parse_tool_calls` for tool-calling support.
 - [`sampling::SamplingConfig`] — temperature/top-p/top-k/seed controls.

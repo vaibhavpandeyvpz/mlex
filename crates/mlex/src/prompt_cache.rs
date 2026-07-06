@@ -38,6 +38,28 @@ pub struct CacheEntry {
     pub pinned: bool,
 }
 
+/// Pool sizing knobs, split out from [`PromptCachePool`] so callers (e.g.
+/// the Node binding) can override [`PromptCacheConfig::default`] piecemeal
+/// without reaching into `Duration`/pool internals.
+#[derive(Clone, Copy, Debug)]
+pub struct PromptCacheConfig {
+    pub max_entries: usize,
+    pub ttl: Duration,
+    pub min_cacheable_tokens: usize,
+}
+
+impl Default for PromptCacheConfig {
+    /// Mirrors [`PromptCachePool::with_defaults`]: 16 entries, 5 minute
+    /// idle TTL, 8-token minimum.
+    fn default() -> Self {
+        PromptCacheConfig {
+            max_entries: 16,
+            ttl: Duration::from_secs(5 * 60),
+            min_cacheable_tokens: 8,
+        }
+    }
+}
+
 /// A small, in-process pool of cached prompt prefixes, keyed by
 /// longest-common-prefix match on token ids rather than a fixed-block
 /// content hash (appropriate at this scale - tens of entries, not a
@@ -69,7 +91,11 @@ impl PromptCachePool {
     /// different reason (their cache is a shared, metered, multi-tenant
     /// resource; this one is just process-local memory).
     pub fn with_defaults() -> Self {
-        Self::new(16, Duration::from_secs(5 * 60), 8)
+        Self::from_config(PromptCacheConfig::default())
+    }
+
+    pub fn from_config(config: PromptCacheConfig) -> Self {
+        Self::new(config.max_entries, config.ttl, config.min_cacheable_tokens)
     }
 
     /// Find the entry whose `ids` is the longest exact prefix of `ids`,

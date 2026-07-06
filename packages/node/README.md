@@ -17,7 +17,7 @@ Under the hood, this package wraps the [`mlex`](https://crates.io/crates/mlex) R
 - **Usage metrics.** Every reply includes an OpenAI/Anthropic-style `usage` block (`promptTokens`, `cachedTokens`, `completionTokens`).
 - **Tool calling.** Pass OpenAI-style function schemas; get parsed tool calls back out of the reply.
 - **Streaming.** Optional `onToken` callback fires once per generated token.
-- **Stateless, automatic prompt caching.** No session handle to manage — grow the `messages` array yourself between calls (like the OpenAI/Anthropic APIs) and a transparent prompt-cache pool reuses KV state for whatever prefix was already computed. Opt a single call out with `options.promptCache: false`.
+- **Stateless, automatic prompt caching.** No session handle to manage — grow the `messages` array yourself between calls (like the OpenAI/Anthropic APIs) and a transparent prompt-cache pool reuses KV state for whatever prefix was already computed. Opt a single call out with `options.promptCache: false`, or size the pool itself (max entries, idle TTL, minimum-cacheable-tokens) via `MlexModel.load`'s second argument.
 
 ## Installation
 
@@ -89,6 +89,18 @@ messages.push({ role: "assistant", content: text });
 messages.push({ role: "user", content: "What's its population?" });
 const { text: reply2 } = await model.generate(messages);
 ```
+
+The cache is a small in-process pool (LRU + idle-TTL eviction, keyed by longest exact-prefix match on token ids), sized once when the model loads — pass a second argument to `MlexModel.load` to override the defaults (16 entries, a 5 minute idle TTL, and an 8-token minimum before a prefix is worth caching at all):
+
+```js
+const model = await MlexModel.load("./models/Qwen3-0.6B-4bit", {
+  maxEntries: 32,
+  ttlSeconds: 60,
+  minCacheableTokens: 16,
+});
+```
+
+To opt a single call out of the pool entirely (neither read nor write), pass `promptCache: false` in that call's `generate` options instead — see [Sampling options](#sampling-options)/[Types](#types) below. The two are independent: `MlexModel.load`'s second argument sizes the pool once; `generate`'s `options.promptCache` toggles pool use per call.
 
 ### Sampling options
 
@@ -189,7 +201,7 @@ if (model.supportsImages()) {
 
 | Member           | Signature                                                                          | Description                                                                                                                                                                                                                                                         |
 | ---------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MlexModel.load` | `(modelPath: string) => Promise<MlexModel>`                                        | Load a model directory (`config.json`, safetensors shards, `tokenizer.json`, optional `chat_template.jinja`).                                                                                                                                                       |
+| `MlexModel.load` | `(modelPath: string, promptCache?: JsPromptCacheConfig) => Promise<MlexModel>`     | Load a model directory (`config.json`, safetensors shards, `tokenizer.json`, optional `chat_template.jinja`). `promptCache` overrides the internal prompt-cache pool's sizing; omit it to keep the defaults.                                                       |
 | `generate`       | `(messages, options?, onToken?) => Promise<{ text, toolCalls, usage, reasoning }>` | Generate a reply to the full message transcript. Pass `options.tools` to enable tool calling — `toolCalls` is empty otherwise. Pass `options.enableThinking` to enable reasoning — `reasoning` is `undefined` otherwise (unless the model reasons unconditionally). |
 | `supportsImages` | `() => boolean`                                                                    | Whether the loaded checkpoint accepts image/video input.                                                                                                                                                                                                            |
 | `supportsAudio`  | `() => boolean`                                                                    | Whether the loaded checkpoint accepts audio input.                                                                                                                                                                                                                  |
@@ -250,6 +262,13 @@ interface JsGenerateResult {
   toolCalls: JsToolCall[]; // empty unless `options.tools` was passed and used
   usage: JsUsage;
   reasoning?: string; // present if the model emitted a recognized reasoning span
+  finishReason: "stop" | "length" | "toolCalls" | "aborted"; // why generation stopped
+}
+
+interface JsPromptCacheConfig {
+  maxEntries?: number; // default 16; max cached prefixes kept at once (LRU-evicted beyond this)
+  ttlSeconds?: number; // default 300 (5 minutes); how long an unused entry is kept
+  minCacheableTokens?: number; // default 8; prompts shorter than this are never cached
 }
 ```
 

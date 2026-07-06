@@ -34,8 +34,12 @@ export declare class MlexModel {
    * scheme MLX ships (affine 2-8 bit at any group size, mxfp4, mxfp8,
    * nvfp4) and mixed per-layer precision checkpoints such as OptiQ or
    * Google QAT exports, wherever the underlying architecture is wired up.
+   *
+   * `promptCache` overrides the sizing of the model's internal
+   * prompt-cache pool (max entries / idle TTL / minimum-cacheable-tokens
+   * gate); omit it to keep the defaults.
    */
-  static load(modelPath: string): Promise<MlexModel>
+  static load(modelPath: string, promptCache?: JsPromptCacheConfig | undefined | null): Promise<MlexModel>
   /**
    * Generate a reply to `messages` (the full transcript so far - see
    * the type-level docs for how caching works across calls).
@@ -168,6 +172,26 @@ export interface JsGenerateResult {
    * callback stopped generation early).
    */
   finishReason: string
+}
+
+/**
+ * Sizing knobs for [`MlexModel::load`]'s internal prompt-cache pool.
+ * Unset fields keep [`PromptCacheConfig::default`]'s value (16 entries, a
+ * 5 minute idle TTL, an 8-token minimum-cacheable-prompt gate).
+ */
+export interface JsPromptCacheConfig {
+  /**
+   * Maximum number of cached prefixes kept at once (LRU-evicted beyond
+   * this).
+   */
+  maxEntries?: number
+  /** How long, in seconds, an unused entry is kept before it's evicted. */
+  ttlSeconds?: number
+  /**
+   * Prompts shorter than this many tokens are never cached (not worth
+   * occupying a pool slot to save re-running a trivially short prefix).
+   */
+  minCacheableTokens?: number
 }
 
 /**
