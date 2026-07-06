@@ -21,6 +21,12 @@ fn main() {
         .define("MLX_BUILD_TESTS", "OFF")
         .define("MLX_BUILD_EXAMPLES", "OFF")
         .profile("Release");
+    if cfg!(target_os = "macos")
+        && let Ok(target) = env::var("MACOSX_DEPLOYMENT_TARGET")
+        && !target.trim().is_empty()
+    {
+        cfg.define("CMAKE_OSX_DEPLOYMENT_TARGET", target);
+    }
     let dst = cfg.build();
 
     // mlx-c installs libmlxc; libmlx stays in the CMake build tree.

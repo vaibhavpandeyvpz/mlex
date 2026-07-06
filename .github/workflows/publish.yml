@@ -23,10 +23,11 @@ on:
 env:
   MLEX_MODELS_DIR: ${{ github.workspace }}/.ci-models
   CARGO_TERM_COLOR: always
+  MACOSX_DEPLOYMENT_TARGET: "15.0"
 
 jobs:
   build-and-test:
-    runs-on: macos-latest
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
@@ -72,7 +73,7 @@ jobs:
 
   publish-crates:
     needs: build-and-test
-    runs-on: macos-latest
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
@@ -106,7 +107,7 @@ jobs:
 
   publish-npm:
     needs: build-and-test
-    runs-on: macos-latest
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
