@@ -18,12 +18,12 @@ env:
   # to the script's default minimal model set.
   MLEX_MODELS_DIR: ${{ github.workspace }}/.ci-models
   CARGO_TERM_COLOR: always
-  MACOSX_DEPLOYMENT_TARGET: "15.0"
+  MACOSX_DEPLOYMENT_TARGET: "26.0"
 
 jobs:
   build-and-test:
     name: build-and-test (${{ matrix.label }})
-    runs-on: macos-15
+    runs-on: macos-26
     strategy:
       fail-fast: false
       matrix:
@@ -101,7 +101,7 @@ jobs:
         run: npm test
 
   coverage:
-    runs-on: macos-15
+    runs-on: macos-26
     needs: build-and-test
     steps:
       - uses: actions/checkout@v4
