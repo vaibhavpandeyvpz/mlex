@@ -11,7 +11,7 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-mlex = { path = "../mlex", version = "0.1.2" }
+mlex = { path = "../mlex", version = "0.1.3" }
 napi = { version = "3", features = ["napi10", "async", "tokio_fs", "serde-json"] }
 napi-derive = "3"
 serde_json.workspace = true

@@ -1,6 +1,6 @@
 {
   "name": "mlex.js",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Run your favorite LLMs (Qwen, Gemma4, NemotronH, DharaAR, ...) at blazing-fast speeds on Apple Silicon, with multi-modal (image/audio/video) support, from JavaScript/TypeScript.",
   "license": "MIT",
   "homepage": "https://github.com/vaibhavpandeyvpz/mlex",
