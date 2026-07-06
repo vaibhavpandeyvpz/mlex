@@ -139,6 +139,13 @@ pub struct GenerateOptions {
     /// extended-thinking `budget_tokens`. `None` means no cap. Has no
     /// effect if the model never opens a recognized reasoning span.
     pub reasoning_budget_tokens: Option<usize>,
+    /// Whether [`Session::generate_cached`] may reuse (and store) KV state
+    /// in the session's [`PromptCachePool`]. `None`/`Some(true)` keeps
+    /// caching on (the default); `Some(false)` runs this call fully cold
+    /// and leaves the pool untouched - useful when the caller wants
+    /// deterministic from-scratch prefill or to bound memory held by
+    /// cached KV state.
+    pub prompt_cache: Option<bool>,
 }
 
 impl Default for GenerateOptions {
@@ -148,6 +155,7 @@ impl Default for GenerateOptions {
             sampling: SamplingConfig::default(),
             enable_thinking: None,
             reasoning_budget_tokens: None,
+            prompt_cache: None,
         }
     }
 }
@@ -680,12 +688,15 @@ impl Session {
         let (full_ids, media, pending_reasoning) =
             self.encode_chat_with_media_full_inner(messages, tools, options.enable_thinking)?;
 
-        let (mut caches, fed_len, fed_images, fed_audios) = {
+        let cache_enabled = options.prompt_cache.unwrap_or(true);
+        let (mut caches, fed_len, fed_images, fed_audios) = if cache_enabled {
             let mut pool = self.prompt_cache.lock().unwrap();
             match pool.find_longest_prefix(&full_ids) {
                 Some((entry, shared)) => (entry.caches, shared, entry.fed_images, entry.fed_audios),
                 None => (self.new_caches(), 0, 0, 0),
             }
+        } else {
+            (self.new_caches(), 0, 0, 0)
         };
 
         let new_suffix = &full_ids[fed_len..];
@@ -719,15 +730,17 @@ impl Session {
             completion_tokens: generated_ids.len(),
         };
 
-        let mut cached_ids = full_ids;
-        cached_ids.extend_from_slice(&generated_ids);
-        self.prompt_cache.lock().unwrap().insert_or_update(
-            cached_ids,
-            caches,
-            media.images.len(),
-            media.audios.len(),
-            false,
-        );
+        if cache_enabled {
+            let mut cached_ids = full_ids;
+            cached_ids.extend_from_slice(&generated_ids);
+            self.prompt_cache.lock().unwrap().insert_or_update(
+                cached_ids,
+                caches,
+                media.images.len(),
+                media.audios.len(),
+                false,
+            );
+        }
 
         // Decode without stripping special tokens (see
         // `Tokenizer::decode_raw`) so reasoning/tool-call markers survive

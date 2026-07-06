@@ -159,6 +159,11 @@ pub struct JsGenerateOptions {
     /// the final answer - mirroring Anthropic's extended-thinking
     /// `budget_tokens`. Unset means no cap.
     pub reasoning_budget_tokens: Option<u32>,
+    /// Whether this call may reuse (and store) KV state in the model's
+    /// internal prompt-cache pool. Unset/`true` keeps caching on (the
+    /// default); `false` runs the call fully cold and leaves the pool
+    /// untouched.
+    pub prompt_cache: Option<bool>,
 }
 
 impl JsGenerateOptions {
@@ -184,6 +189,7 @@ impl JsGenerateOptions {
             },
             enable_thinking: self.enable_thinking,
             reasoning_budget_tokens: self.reasoning_budget_tokens.map(|b| b as usize),
+            prompt_cache: self.prompt_cache,
         };
         Ok((tools, core_options))
     }

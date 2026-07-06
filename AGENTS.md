@@ -242,7 +242,10 @@ the property a single-lineage `Conversation` handle could never have (see
 
 Pool semantics: LRU + TTL eviction, pinning support, and a
 `min_cacheable_tokens` gate (default 8) so trivially short prompts aren't
-wastefully cached. Cache reuse leverages MLX's cheap `Array::clone`
+wastefully cached. Callers can opt a single call out entirely via
+`GenerateOptions::prompt_cache: Some(false)` (`promptCache` on the Node
+binding): the call prefills from scratch and neither reads from nor writes
+to the pool. Cache reuse leverages MLX's cheap `Array::clone`
 (reference-counted, not a deep copy) for the stored KV state.
 
 `generate_cached` returns a `GenerateReply { text, tool_calls, usage,

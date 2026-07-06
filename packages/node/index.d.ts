@@ -128,6 +128,13 @@ export interface JsGenerateOptions {
    * `budget_tokens`. Unset means no cap.
    */
   reasoningBudgetTokens?: number
+  /**
+   * Whether this call may reuse (and store) KV state in the model's
+   * internal prompt-cache pool. Unset/`true` keeps caching on (the
+   * default); `false` runs the call fully cold and leaves the pool
+   * untouched.
+   */
+  promptCache?: boolean
 }
 
 /** The resolved value of [`MlexModel::generate`]. */

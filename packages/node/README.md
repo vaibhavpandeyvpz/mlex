@@ -17,7 +17,7 @@ Under the hood, this package wraps the [`mlex`](https://crates.io/crates/mlex) R
 - **Usage metrics.** Every reply includes an OpenAI/Anthropic-style `usage` block (`promptTokens`, `cachedTokens`, `completionTokens`).
 - **Tool calling.** Pass OpenAI-style function schemas; get parsed tool calls back out of the reply.
 - **Streaming.** Optional `onToken` callback fires once per generated token.
-- **Stateless, automatic prompt caching.** No session handle to manage — grow the `messages` array yourself between calls (like the OpenAI/Anthropic APIs) and a transparent prompt-cache pool reuses KV state for whatever prefix was already computed.
+- **Stateless, automatic prompt caching.** No session handle to manage — grow the `messages` array yourself between calls (like the OpenAI/Anthropic APIs) and a transparent prompt-cache pool reuses KV state for whatever prefix was already computed. Opt a single call out with `options.promptCache: false`.
 
 ## Installation
 
@@ -217,6 +217,7 @@ interface JsGenerateOptions {
   tools?: JsTool[]; // enables tool calling for this call
   enableThinking?: boolean; // opt into "thinking" mode, where supported
   reasoningBudgetTokens?: number; // cap on the reasoning span's length
+  promptCache?: boolean; // default true; false runs the call fully cold (no pool read/write)
 }
 
 interface JsToken {
