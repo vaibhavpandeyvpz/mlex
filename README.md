@@ -2,7 +2,7 @@
 
 **Run your favorite LLMs at blazing-fast speeds on Apple Silicon.**
 
-`mlex` is a from-scratch Rust runtime for [Apple MLX](https://github.com/ml-explore/mlx) — no Python, no system MLX install, no PyTorch. Point it at a model directory from the Hugging Face Hub, and it loads straight onto the GPU through Metal, ready to chat, call tools, and see/hear. It ships as a native Rust crate ([`mlex`](https://crates.io/crates/mlex)) and a native Node.js package ([`mlex`](https://www.npmjs.com/package/mlex)), both built from the same core.
+`mlex` is a from-scratch Rust runtime for [Apple MLX](https://github.com/ml-explore/mlx) — no Python, no system MLX install, no PyTorch. Point it at a model directory from the Hugging Face Hub, and it loads straight onto the GPU through Metal, ready to chat, call tools, and see/hear. It ships as a native Rust crate ([`mlex`](https://crates.io/crates/mlex)) and a native Node.js package ([`mlex.js`](https://www.npmjs.com/package/mlex.js)), both built from the same core.
 
 Why another inference runtime? Because Apple Silicon deserves a first-class, dependency-free way to run modern quantized LLMs — not a Python environment shimmed through FFI, but a real static binary that loads a model and starts generating tokens in milliseconds.
 
@@ -44,7 +44,7 @@ mlex/
 │   ├── mlex/         # the runtime — published to crates.io as `mlex`
 │   └── mlex-node/     # NAPI-RS glue, compiles `mlex` into a Node native addon (not published)
 └── packages/
-    └── node/          # the npm package — published as `mlex`, wraps mlex-node's addon
+    └── node/          # the npm package — published as `mlex.js`, wraps mlex-node's addon
 ```
 
 `mlex` used to depend on a separate `mlex-sys` crate for the raw `mlx-c` FFI bindings; that's since been folded in as a private module so there's exactly one Rust crate to `cargo add`. See [`crates/mlex/README.md`](crates/mlex/README.md) and [`crates/mlex-node/README.md`](crates/mlex-node/README.md) for the details, and [`packages/node/README.md`](packages/node/README.md) for the npm package.
@@ -76,11 +76,11 @@ fn main() -> mlex::Result<()> {
 ### Node.js / TypeScript
 
 ```bash
-npm install mlex
+npm install mlex.js
 ```
 
 ```js
-import { MlexModel } from "mlex";
+import { MlexModel } from "mlex.js";
 
 const model = await MlexModel.load("./models/Qwen3-0.6B-4bit");
 const messages = [{ role: "user", content: "Say hello in five words." }];

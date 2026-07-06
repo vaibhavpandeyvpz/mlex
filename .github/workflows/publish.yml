@@ -2,7 +2,7 @@ name: Publish
 
 # Triggered by pushing a tag like `v1.0.0`. Testing already happens in CI
 # (ci.yml) on every push/PR, so this workflow does not re-run the test
-# suite; it goes straight to publishing `mlex` to crates.io and `mlex` to
+# suite; it goes straight to publishing `mlex` to crates.io and `mlex.js` to
 # npm, both pinned to the version encoded in the tag. `mlex-node` (the
 # NAPI-RS glue crate) is never published to crates.io - only its compiled
 # `.node` addon ships, inside the npm package.
@@ -10,7 +10,7 @@ name: Publish
 # Required secrets:
 #   CARGO_REGISTRY_TOKEN  - crates.io API token with publish rights.
 #   NPM_TOKEN             - npm automation token with publish rights for the
-#                            `mlex` package (must have public-package access).
+#                            `mlex.js` package (must have public-package access).
 on:
   push:
     tags:

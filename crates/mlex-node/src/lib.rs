@@ -224,7 +224,7 @@ fn token_kind_str(k: mlex::streaming::TokenKind) -> &'static str {
 /// happens to share a prefix (e.g. a common system prompt).
 ///
 /// ```js
-/// import { MlexModel } from 'mlex';
+/// import { MlexModel } from 'mlex.js';
 ///
 /// const model = await MlexModel.load('./models/Qwen3-0.6B-4bit');
 /// const messages = [{ role: 'user', content: 'Say hi in five words.' }];

@@ -72,14 +72,14 @@ function requireNative() {
   } else if (process.platform === "android") {
     if (process.arch === "arm64") {
       try {
-        return require("./mlex.android-arm64.node");
+        return require("./mlex.js.android-arm64.node");
       } catch (e) {
         loadErrors.push(e);
       }
       try {
-        const binding = require("mlex-android-arm64");
+        const binding = require("mlex.js-android-arm64");
         const bindingPackageVersion =
-          require("mlex-android-arm64/package.json").version;
+          require("mlex.js-android-arm64/package.json").version;
         if (
           bindingPackageVersion !== "0.1.0" &&
           process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -95,14 +95,14 @@ function requireNative() {
       }
     } else if (process.arch === "arm") {
       try {
-        return require("./mlex.android-arm-eabi.node");
+        return require("./mlex.js.android-arm-eabi.node");
       } catch (e) {
         loadErrors.push(e);
       }
       try {
-        const binding = require("mlex-android-arm-eabi");
+        const binding = require("mlex.js-android-arm-eabi");
         const bindingPackageVersion =
-          require("mlex-android-arm-eabi/package.json").version;
+          require("mlex.js-android-arm-eabi/package.json").version;
         if (
           bindingPackageVersion !== "0.1.0" &&
           process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -132,14 +132,14 @@ function requireNative() {
           process.config.variables.node_target_type === "shared_library")
       ) {
         try {
-          return require("./mlex.win32-x64-gnu.node");
+          return require("./mlex.js.win32-x64-gnu.node");
         } catch (e) {
           loadErrors.push(e);
         }
         try {
-          const binding = require("mlex-win32-x64-gnu");
+          const binding = require("mlex.js-win32-x64-gnu");
           const bindingPackageVersion =
-            require("mlex-win32-x64-gnu/package.json").version;
+            require("mlex.js-win32-x64-gnu/package.json").version;
           if (
             bindingPackageVersion !== "0.1.0" &&
             process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -155,14 +155,14 @@ function requireNative() {
         }
       } else {
         try {
-          return require("./mlex.win32-x64-msvc.node");
+          return require("./mlex.js.win32-x64-msvc.node");
         } catch (e) {
           loadErrors.push(e);
         }
         try {
-          const binding = require("mlex-win32-x64-msvc");
+          const binding = require("mlex.js-win32-x64-msvc");
           const bindingPackageVersion =
-            require("mlex-win32-x64-msvc/package.json").version;
+            require("mlex.js-win32-x64-msvc/package.json").version;
           if (
             bindingPackageVersion !== "0.1.0" &&
             process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -179,14 +179,14 @@ function requireNative() {
       }
     } else if (process.arch === "ia32") {
       try {
-        return require("./mlex.win32-ia32-msvc.node");
+        return require("./mlex.js.win32-ia32-msvc.node");
       } catch (e) {
         loadErrors.push(e);
       }
       try {
-        const binding = require("mlex-win32-ia32-msvc");
+        const binding = require("mlex.js-win32-ia32-msvc");
         const bindingPackageVersion =
-          require("mlex-win32-ia32-msvc/package.json").version;
+          require("mlex.js-win32-ia32-msvc/package.json").version;
         if (
           bindingPackageVersion !== "0.1.0" &&
           process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -202,14 +202,14 @@ function requireNative() {
       }
     } else if (process.arch === "arm64") {
       try {
-        return require("./mlex.win32-arm64-msvc.node");
+        return require("./mlex.js.win32-arm64-msvc.node");
       } catch (e) {
         loadErrors.push(e);
       }
       try {
-        const binding = require("mlex-win32-arm64-msvc");
+        const binding = require("mlex.js-win32-arm64-msvc");
         const bindingPackageVersion =
-          require("mlex-win32-arm64-msvc/package.json").version;
+          require("mlex.js-win32-arm64-msvc/package.json").version;
         if (
           bindingPackageVersion !== "0.1.0" &&
           process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -230,14 +230,14 @@ function requireNative() {
     }
   } else if (process.platform === "darwin") {
     try {
-      return require("./mlex.darwin-universal.node");
+      return require("./mlex.js.darwin-universal.node");
     } catch (e) {
       loadErrors.push(e);
     }
     try {
-      const binding = require("mlex-darwin-universal");
+      const binding = require("mlex.js-darwin-universal");
       const bindingPackageVersion =
-        require("mlex-darwin-universal/package.json").version;
+        require("mlex.js-darwin-universal/package.json").version;
       if (
         bindingPackageVersion !== "0.1.0" &&
         process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -253,14 +253,14 @@ function requireNative() {
     }
     if (process.arch === "x64") {
       try {
-        return require("./mlex.darwin-x64.node");
+        return require("./mlex.js.darwin-x64.node");
       } catch (e) {
         loadErrors.push(e);
       }
       try {
-        const binding = require("mlex-darwin-x64");
+        const binding = require("mlex.js-darwin-x64");
         const bindingPackageVersion =
-          require("mlex-darwin-x64/package.json").version;
+          require("mlex.js-darwin-x64/package.json").version;
         if (
           bindingPackageVersion !== "0.1.0" &&
           process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -276,14 +276,14 @@ function requireNative() {
       }
     } else if (process.arch === "arm64") {
       try {
-        return require("./mlex.darwin-arm64.node");
+        return require("./mlex.js.darwin-arm64.node");
       } catch (e) {
         loadErrors.push(e);
       }
       try {
-        const binding = require("mlex-darwin-arm64");
+        const binding = require("mlex.js-darwin-arm64");
         const bindingPackageVersion =
-          require("mlex-darwin-arm64/package.json").version;
+          require("mlex.js-darwin-arm64/package.json").version;
         if (
           bindingPackageVersion !== "0.1.0" &&
           process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -305,14 +305,14 @@ function requireNative() {
   } else if (process.platform === "freebsd") {
     if (process.arch === "x64") {
       try {
-        return require("./mlex.freebsd-x64.node");
+        return require("./mlex.js.freebsd-x64.node");
       } catch (e) {
         loadErrors.push(e);
       }
       try {
-        const binding = require("mlex-freebsd-x64");
+        const binding = require("mlex.js-freebsd-x64");
         const bindingPackageVersion =
-          require("mlex-freebsd-x64/package.json").version;
+          require("mlex.js-freebsd-x64/package.json").version;
         if (
           bindingPackageVersion !== "0.1.0" &&
           process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -328,14 +328,14 @@ function requireNative() {
       }
     } else if (process.arch === "arm64") {
       try {
-        return require("./mlex.freebsd-arm64.node");
+        return require("./mlex.js.freebsd-arm64.node");
       } catch (e) {
         loadErrors.push(e);
       }
       try {
-        const binding = require("mlex-freebsd-arm64");
+        const binding = require("mlex.js-freebsd-arm64");
         const bindingPackageVersion =
-          require("mlex-freebsd-arm64/package.json").version;
+          require("mlex.js-freebsd-arm64/package.json").version;
         if (
           bindingPackageVersion !== "0.1.0" &&
           process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -358,14 +358,14 @@ function requireNative() {
     if (process.arch === "x64") {
       if (isMusl()) {
         try {
-          return require("./mlex.linux-x64-musl.node");
+          return require("./mlex.js.linux-x64-musl.node");
         } catch (e) {
           loadErrors.push(e);
         }
         try {
-          const binding = require("mlex-linux-x64-musl");
+          const binding = require("mlex.js-linux-x64-musl");
           const bindingPackageVersion =
-            require("mlex-linux-x64-musl/package.json").version;
+            require("mlex.js-linux-x64-musl/package.json").version;
           if (
             bindingPackageVersion !== "0.1.0" &&
             process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -381,14 +381,14 @@ function requireNative() {
         }
       } else {
         try {
-          return require("./mlex.linux-x64-gnu.node");
+          return require("./mlex.js.linux-x64-gnu.node");
         } catch (e) {
           loadErrors.push(e);
         }
         try {
-          const binding = require("mlex-linux-x64-gnu");
+          const binding = require("mlex.js-linux-x64-gnu");
           const bindingPackageVersion =
-            require("mlex-linux-x64-gnu/package.json").version;
+            require("mlex.js-linux-x64-gnu/package.json").version;
           if (
             bindingPackageVersion !== "0.1.0" &&
             process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -406,14 +406,14 @@ function requireNative() {
     } else if (process.arch === "arm64") {
       if (isMusl()) {
         try {
-          return require("./mlex.linux-arm64-musl.node");
+          return require("./mlex.js.linux-arm64-musl.node");
         } catch (e) {
           loadErrors.push(e);
         }
         try {
-          const binding = require("mlex-linux-arm64-musl");
+          const binding = require("mlex.js-linux-arm64-musl");
           const bindingPackageVersion =
-            require("mlex-linux-arm64-musl/package.json").version;
+            require("mlex.js-linux-arm64-musl/package.json").version;
           if (
             bindingPackageVersion !== "0.1.0" &&
             process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -429,14 +429,14 @@ function requireNative() {
         }
       } else {
         try {
-          return require("./mlex.linux-arm64-gnu.node");
+          return require("./mlex.js.linux-arm64-gnu.node");
         } catch (e) {
           loadErrors.push(e);
         }
         try {
-          const binding = require("mlex-linux-arm64-gnu");
+          const binding = require("mlex.js-linux-arm64-gnu");
           const bindingPackageVersion =
-            require("mlex-linux-arm64-gnu/package.json").version;
+            require("mlex.js-linux-arm64-gnu/package.json").version;
           if (
             bindingPackageVersion !== "0.1.0" &&
             process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -454,14 +454,14 @@ function requireNative() {
     } else if (process.arch === "arm") {
       if (isMusl()) {
         try {
-          return require("./mlex.linux-arm-musleabihf.node");
+          return require("./mlex.js.linux-arm-musleabihf.node");
         } catch (e) {
           loadErrors.push(e);
         }
         try {
-          const binding = require("mlex-linux-arm-musleabihf");
+          const binding = require("mlex.js-linux-arm-musleabihf");
           const bindingPackageVersion =
-            require("mlex-linux-arm-musleabihf/package.json").version;
+            require("mlex.js-linux-arm-musleabihf/package.json").version;
           if (
             bindingPackageVersion !== "0.1.0" &&
             process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -477,14 +477,14 @@ function requireNative() {
         }
       } else {
         try {
-          return require("./mlex.linux-arm-gnueabihf.node");
+          return require("./mlex.js.linux-arm-gnueabihf.node");
         } catch (e) {
           loadErrors.push(e);
         }
         try {
-          const binding = require("mlex-linux-arm-gnueabihf");
+          const binding = require("mlex.js-linux-arm-gnueabihf");
           const bindingPackageVersion =
-            require("mlex-linux-arm-gnueabihf/package.json").version;
+            require("mlex.js-linux-arm-gnueabihf/package.json").version;
           if (
             bindingPackageVersion !== "0.1.0" &&
             process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -502,14 +502,14 @@ function requireNative() {
     } else if (process.arch === "loong64") {
       if (isMusl()) {
         try {
-          return require("./mlex.linux-loong64-musl.node");
+          return require("./mlex.js.linux-loong64-musl.node");
         } catch (e) {
           loadErrors.push(e);
         }
         try {
-          const binding = require("mlex-linux-loong64-musl");
+          const binding = require("mlex.js-linux-loong64-musl");
           const bindingPackageVersion =
-            require("mlex-linux-loong64-musl/package.json").version;
+            require("mlex.js-linux-loong64-musl/package.json").version;
           if (
             bindingPackageVersion !== "0.1.0" &&
             process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -525,14 +525,14 @@ function requireNative() {
         }
       } else {
         try {
-          return require("./mlex.linux-loong64-gnu.node");
+          return require("./mlex.js.linux-loong64-gnu.node");
         } catch (e) {
           loadErrors.push(e);
         }
         try {
-          const binding = require("mlex-linux-loong64-gnu");
+          const binding = require("mlex.js-linux-loong64-gnu");
           const bindingPackageVersion =
-            require("mlex-linux-loong64-gnu/package.json").version;
+            require("mlex.js-linux-loong64-gnu/package.json").version;
           if (
             bindingPackageVersion !== "0.1.0" &&
             process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -550,14 +550,14 @@ function requireNative() {
     } else if (process.arch === "riscv64") {
       if (isMusl()) {
         try {
-          return require("./mlex.linux-riscv64-musl.node");
+          return require("./mlex.js.linux-riscv64-musl.node");
         } catch (e) {
           loadErrors.push(e);
         }
         try {
-          const binding = require("mlex-linux-riscv64-musl");
+          const binding = require("mlex.js-linux-riscv64-musl");
           const bindingPackageVersion =
-            require("mlex-linux-riscv64-musl/package.json").version;
+            require("mlex.js-linux-riscv64-musl/package.json").version;
           if (
             bindingPackageVersion !== "0.1.0" &&
             process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -573,14 +573,14 @@ function requireNative() {
         }
       } else {
         try {
-          return require("./mlex.linux-riscv64-gnu.node");
+          return require("./mlex.js.linux-riscv64-gnu.node");
         } catch (e) {
           loadErrors.push(e);
         }
         try {
-          const binding = require("mlex-linux-riscv64-gnu");
+          const binding = require("mlex.js-linux-riscv64-gnu");
           const bindingPackageVersion =
-            require("mlex-linux-riscv64-gnu/package.json").version;
+            require("mlex.js-linux-riscv64-gnu/package.json").version;
           if (
             bindingPackageVersion !== "0.1.0" &&
             process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -597,14 +597,14 @@ function requireNative() {
       }
     } else if (process.arch === "ppc64") {
       try {
-        return require("./mlex.linux-ppc64-gnu.node");
+        return require("./mlex.js.linux-ppc64-gnu.node");
       } catch (e) {
         loadErrors.push(e);
       }
       try {
-        const binding = require("mlex-linux-ppc64-gnu");
+        const binding = require("mlex.js-linux-ppc64-gnu");
         const bindingPackageVersion =
-          require("mlex-linux-ppc64-gnu/package.json").version;
+          require("mlex.js-linux-ppc64-gnu/package.json").version;
         if (
           bindingPackageVersion !== "0.1.0" &&
           process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -620,14 +620,14 @@ function requireNative() {
       }
     } else if (process.arch === "s390x") {
       try {
-        return require("./mlex.linux-s390x-gnu.node");
+        return require("./mlex.js.linux-s390x-gnu.node");
       } catch (e) {
         loadErrors.push(e);
       }
       try {
-        const binding = require("mlex-linux-s390x-gnu");
+        const binding = require("mlex.js-linux-s390x-gnu");
         const bindingPackageVersion =
-          require("mlex-linux-s390x-gnu/package.json").version;
+          require("mlex.js-linux-s390x-gnu/package.json").version;
         if (
           bindingPackageVersion !== "0.1.0" &&
           process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -649,14 +649,14 @@ function requireNative() {
   } else if (process.platform === "openharmony") {
     if (process.arch === "arm64") {
       try {
-        return require("./mlex.openharmony-arm64.node");
+        return require("./mlex.js.openharmony-arm64.node");
       } catch (e) {
         loadErrors.push(e);
       }
       try {
-        const binding = require("mlex-openharmony-arm64");
+        const binding = require("mlex.js-openharmony-arm64");
         const bindingPackageVersion =
-          require("mlex-openharmony-arm64/package.json").version;
+          require("mlex.js-openharmony-arm64/package.json").version;
         if (
           bindingPackageVersion !== "0.1.0" &&
           process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -672,14 +672,14 @@ function requireNative() {
       }
     } else if (process.arch === "x64") {
       try {
-        return require("./mlex.openharmony-x64.node");
+        return require("./mlex.js.openharmony-x64.node");
       } catch (e) {
         loadErrors.push(e);
       }
       try {
-        const binding = require("mlex-openharmony-x64");
+        const binding = require("mlex.js-openharmony-x64");
         const bindingPackageVersion =
-          require("mlex-openharmony-x64/package.json").version;
+          require("mlex.js-openharmony-x64/package.json").version;
         if (
           bindingPackageVersion !== "0.1.0" &&
           process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -695,14 +695,14 @@ function requireNative() {
       }
     } else if (process.arch === "arm") {
       try {
-        return require("./mlex.openharmony-arm.node");
+        return require("./mlex.js.openharmony-arm.node");
       } catch (e) {
         loadErrors.push(e);
       }
       try {
-        const binding = require("mlex-openharmony-arm");
+        const binding = require("mlex.js-openharmony-arm");
         const bindingPackageVersion =
-          require("mlex-openharmony-arm/package.json").version;
+          require("mlex.js-openharmony-arm/package.json").version;
         if (
           bindingPackageVersion !== "0.1.0" &&
           process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
@@ -747,7 +747,7 @@ if (!nativeBinding || forceWasi) {
   let wasiBinding = null;
   let wasiBindingError = null;
   try {
-    wasiBinding = require("./mlex.wasi.cjs");
+    wasiBinding = require("./mlex.js.wasi.cjs");
     nativeBinding = wasiBinding;
   } catch (err) {
     if (forceWasi) {
@@ -756,7 +756,7 @@ if (!nativeBinding || forceWasi) {
   }
   if (!nativeBinding || forceWasi) {
     try {
-      wasiBinding = require("mlex-wasm32-wasi");
+      wasiBinding = require("mlex.js-wasm32-wasi");
       nativeBinding = wasiBinding;
     } catch (err) {
       if (forceWasi) {

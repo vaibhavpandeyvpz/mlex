@@ -4,7 +4,7 @@
 
 `mlex` is a safe, idiomatic Rust runtime built directly on [Apple MLX](https://github.com/ml-explore/mlx) (via the official `mlx-c` C API, vendored and statically linked — no system MLX install, no Python required). It loads MLX-format checkpoints straight off the Hugging Face Hub layout and runs them on the GPU through Metal, with first-class support for every quantization scheme the MLX community actually ships, tool calling, and multi-modal (image/audio/video) input.
 
-This crate is the engine underneath the [`mlex` npm package](https://www.npmjs.com/package/mlex) (Node.js bindings), but it's a complete, self-contained Rust library on its own.
+This crate is the engine underneath the [`mlex.js` npm package](https://www.npmjs.com/package/mlex.js) (Node.js bindings), but it's a complete, self-contained Rust library on its own.
 
 ## Features
 

@@ -1,5 +1,5 @@
 {
-  "name": "mlex",
+  "name": "mlex.js",
   "version": "0.1.0",
   "description": "Run your favorite LLMs (Qwen, Gemma4, NemotronH, DharaAR, ...) at blazing-fast speeds on Apple Silicon, with multi-modal (image/audio/video) support, from JavaScript/TypeScript.",
   "license": "MIT",
@@ -29,8 +29,8 @@
     "*.node"
   ],
   "napi": {
-    "binaryName": "mlex",
-    "packageName": "mlex",
+    "binaryName": "mlex.js",
+    "packageName": "mlex.js",
     "targets": [
       "aarch64-apple-darwin"
     ]

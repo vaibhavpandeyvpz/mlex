@@ -1,8 +1,8 @@
-# mlex
+# mlex.js
 
 **Run your favorite LLMs at blazing-fast speeds on Apple Silicon — from Node.js.**
 
-`mlex` is a native Node.js addon (prebuilt, no compiler required) wrapping [Apple MLX](https://github.com/ml-explore/mlx) for local LLM inference on the GPU via Metal. It loads MLX-format checkpoints straight from a Hugging Face Hub-style model directory and gives you a single OpenAI-style `generate` call, with streaming, system prompts, tool calling, and multi-modal (image/audio/video) input built in.
+`mlex.js` is a native Node.js addon (prebuilt, no compiler required) wrapping [Apple MLX](https://github.com/ml-explore/mlx) for local LLM inference on the GPU via Metal. It loads MLX-format checkpoints straight from a Hugging Face Hub-style model directory and gives you a single OpenAI-style `generate` call, with streaming, system prompts, tool calling, and multi-modal (image/audio/video) input built in.
 
 Under the hood, this package wraps the [`mlex`](https://crates.io/crates/mlex) Rust crate.
 
@@ -22,15 +22,15 @@ Under the hood, this package wraps the [`mlex`](https://crates.io/crates/mlex) R
 ## Installation
 
 ```bash
-npm install mlex
+npm install mlex.js
 ```
 
-Prebuilt binaries are published for `aarch64-apple-darwin` only. `mlex` requires macOS on Apple Silicon — MLX's Metal backend doesn't run on Intel Macs, so there's no x86_64 build.
+Prebuilt binaries are published for `aarch64-apple-darwin` only. `mlex.js` requires macOS on Apple Silicon — MLX's Metal backend doesn't run on Intel Macs, so there's no x86_64 build.
 
 ## Quickstart
 
 ```js
-import { MlexModel } from "mlex";
+import { MlexModel } from "mlex.js";
 
 const model = await MlexModel.load("./models/Qwen3-0.6B-4bit");
 
