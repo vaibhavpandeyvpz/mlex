@@ -26,7 +26,8 @@
     "index.d.ts",
     "README.md",
     "LICENSE",
-    "*.node"
+    "*.node",
+    "*.metallib"
   ],
   "napi": {
     "binaryName": "mlex.js",
@@ -36,8 +37,8 @@
     ]
   },
   "scripts": {
-    "build": "napi build --platform --release --manifest-path ../../crates/mlex-node/Cargo.toml --output-dir . --js index.js --dts index.d.ts",
-    "build:debug": "napi build --platform --manifest-path ../../crates/mlex-node/Cargo.toml --output-dir . --js index.js --dts index.d.ts",
+    "build": "napi build --platform --release --manifest-path ../../crates/mlex-node/Cargo.toml --output-dir . --js index.js --dts index.d.ts && node copy-metallib.mjs",
+    "build:debug": "napi build --platform --manifest-path ../../crates/mlex-node/Cargo.toml --output-dir . --js index.js --dts index.d.ts && node copy-metallib.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"

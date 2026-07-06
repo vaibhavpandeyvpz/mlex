@@ -35,7 +35,7 @@ export declare class MlexModel {
    * nvfp4) and mixed per-layer precision checkpoints such as OptiQ or
    * Google QAT exports, wherever the underlying architecture is wired up.
    */
-  static load(modelPath: string): Promise<MlexModel>;
+  static load(modelPath: string): Promise<MlexModel>
   /**
    * Generate a reply to `messages` (the full transcript so far - see
    * the type-level docs for how caching works across calls).
@@ -53,15 +53,11 @@ export declare class MlexModel {
    * `reasoning` (`options.reasoningBudgetTokens` caps how long that
    * span may run before it's force-closed).
    */
-  generate(
-    messages: Array<JsChatMessage>,
-    options?: JsGenerateOptions | undefined | null,
-    onToken?: ((err: Error | null, arg: JsToken) => void) | undefined | null,
-  ): Promise<JsGenerateResult>;
+  generate(messages: Array<JsChatMessage>, options?: JsGenerateOptions | undefined | null, onToken?: (((err: Error | null, arg: JsToken) => void)) | undefined | null): Promise<JsGenerateResult>
   /** Whether this checkpoint accepts image (and video-as-frames) input. */
-  supportsImages(): boolean;
+  supportsImages(): boolean
   /** Whether this checkpoint accepts audio input. */
-  supportsAudio(): boolean;
+  supportsAudio(): boolean
 }
 
 /**
@@ -78,29 +74,29 @@ export declare class MlexModel {
  * KV state for whatever prefix was already computed by a previous call.
  */
 export interface JsChatMessage {
-  role: string;
-  content: string;
-  images?: Array<Buffer>;
-  audios?: Array<Buffer>;
-  videos?: Array<Buffer>;
+  role: string
+  content: string
+  images?: Array<Buffer>
+  audios?: Array<Buffer>
+  videos?: Array<Buffer>
   /**
    * Set on a `role: "tool"` turn: which previously-issued call this
    * result answers.
    */
-  toolCallId?: string;
+  toolCallId?: string
   /**
    * Set on an assistant turn that issued tool calls (as returned by a
    * prior `generate` call's `toolCalls`, when `options.tools` was
    * passed).
    */
-  toolCalls?: Array<JsToolCall>;
+  toolCalls?: Array<JsToolCall>
   /**
    * Set on an assistant turn to round-trip its reasoning/"thinking"
    * content (as returned by a prior `generate` call's `reasoning`)
    * back into history, matching templates that special-case it
    * (Gemma4/Qwen-style).
    */
-  reasoningContent?: string;
+  reasoningContent?: string
 }
 
 /**
@@ -112,41 +108,41 @@ export interface JsChatMessage {
  * [`JsGenerateResult::tool_calls`]) - `generate` is the only entry point.
  */
 export interface JsGenerateOptions {
-  maxTokens?: number;
-  temperature?: number;
-  topP?: number;
-  topK?: number;
-  seed?: number;
-  tools?: Array<JsTool>;
+  maxTokens?: number
+  temperature?: number
+  topP?: number
+  topK?: number
+  seed?: number
+  tools?: Array<JsTool>
   /**
    * Opt into "thinking" mode on models whose chat template supports it
    * (Qwen3/3.5/3.6, Gemma4, MiniCPM5, NemotronH, ...). Leaving this
    * unset keeps the template's own default, which for all of those is
    * reasoning off.
    */
-  enableThinking?: boolean;
+  enableThinking?: boolean
   /**
    * Cap, in tokens, on how long the model may spend inside a detected
    * reasoning span before it's force-closed and generation moves on to
    * the final answer - mirroring Anthropic's extended-thinking
    * `budget_tokens`. Unset means no cap.
    */
-  reasoningBudgetTokens?: number;
+  reasoningBudgetTokens?: number
 }
 
 /** The resolved value of [`MlexModel::generate`]. */
 export interface JsGenerateResult {
-  text: string;
+  text: string
   /**
    * Tool calls parsed out of `text`; empty unless `options.tools` was
    * passed and the model actually issued one or more calls.
    */
-  toolCalls: Array<JsToolCall>;
+  toolCalls: Array<JsToolCall>
   /**
    * Token accounting for this call, mirroring the `usage` block
    * OpenAI/Anthropic return alongside a chat completion.
    */
-  usage: JsUsage;
+  usage: JsUsage
   /**
    * Extracted reasoning/"thinking" content, if the model emitted a
    * recognized reasoning span - present regardless of whether
@@ -155,7 +151,16 @@ export interface JsGenerateResult {
    * span; pass it back via `reasoningContent` on the next assistant
    * turn to preserve it in multi-turn history.
    */
-  reasoning?: string;
+  reasoning?: string
+  /**
+   * Why generation stopped, mirroring OpenAI's `finish_reason` /
+   * Anthropic's `stop_reason`: `"stop"` (the model emitted an
+   * end-of-sequence token - a natural end of turn), `"length"`
+   * (`options.maxTokens` was exhausted), `"toolCalls"` (the reply
+   * issued one or more tool calls), or `"aborted"` (the `onToken`
+   * callback stopped generation early).
+   */
+  finishReason: string
 }
 
 /**
@@ -163,9 +168,9 @@ export interface JsGenerateResult {
  * [`MlexModel::generate`].
  */
 export interface JsToken {
-  id: number;
-  text: string;
-  finished: boolean;
+  id: number
+  text: string
+  finished: boolean
   /**
    * Which span this token belongs to - `"text"` (the final answer),
    * `"reasoning"` (inside a "thinking" span), or `"toolCall"` (raw,
@@ -175,7 +180,7 @@ export interface JsToken {
    * `{ text, reasoning, toolCalls }` once generation finishes.
    * Best-effort at token granularity - see `mlex::streaming`.
    */
-  kind: string;
+  kind: string
 }
 
 /**
@@ -183,21 +188,21 @@ export interface JsToken {
  * `options.tools` to `MlexModel.generate`.
  */
 export interface JsTool {
-  name: string;
-  description?: string;
+  name: string
+  description?: string
   /**
    * JSON Schema for the function's arguments (e.g.
    * `{ type: "object", properties: {...} }`).
    */
-  parameters: JsonValue;
+  parameters: JsonValue
 }
 
 /** A parsed tool call recovered from model output. */
 export interface JsToolCall {
-  id: string;
-  name: string;
+  id: string
+  name: string
   /** JSON-encoded arguments object. */
-  argumentsJson: string;
+  argumentsJson: string
 }
 
 /** Token accounting for one [`MlexModel::generate`] call. */
@@ -206,13 +211,13 @@ export interface JsUsage {
    * Total input tokens for this call's fully-rendered prompt (the sum
    * of `cachedTokens` and however many had to be freshly computed).
    */
-  promptTokens: number;
+  promptTokens: number
   /**
    * How many of `promptTokens` were served from the internal
    * prompt-cache pool (an exact-prefix hit) rather than run through
    * the model this call.
    */
-  cachedTokens: number;
+  cachedTokens: number
   /** Tokens generated in this call's reply. */
-  completionTokens: number;
+  completionTokens: number
 }

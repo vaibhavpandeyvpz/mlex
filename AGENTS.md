@@ -109,7 +109,7 @@ Layered bottom-up:
 | `models/`       | Concrete architectures + the `Model` enum dispatcher (see §3.1).                                                                                                                                                                                                                                                                           |
 | `media/`        | Image/audio/video preprocessing, architecture-agnostic (see §3.2).                                                                                                                                                                                                                                                                         |
 | `tokenizer`     | HF `tokenizer.json` wrapper + Jinja2 chat-template rendering (`minijinja`).                                                                                                                                                                                                                                                                |
-| `tools`         | Tool/function-calling types + Hermes-JSON and Gemma-native output parsers.                                                                                                                                                                                                                                                                 |
+| `tools`         | Tool/function-calling types + output parsers: Hermes `<tool_call>` blocks (JSON payloads *and* the XML `<function=NAME><parameter=KEY>` convention newer Qwen3.5/NemotronH templates render), Gemma-native key/value macros, plus `strip_tool_calls` (used by `generate_cached` to keep call syntax out of the reply `text`).             |
 | `reasoning`     | Reasoning/"thinking" span detection, extraction, and token-budget enforcement (see §3.3).                                                                                                                                                                                                                                                  |
 | `streaming`     | Live per-token classification (`TokenKind::{Text,Reasoning,ToolCall}`) for streaming consumers (see §3.3).                                                                                                                                                                                                                                 |
 | `prompt_cache`  | Stateless, prefix-matching KV-cache pool (see §3.4).                                                                                                                                                                                                                                                                                       |
@@ -509,7 +509,45 @@ file-based PNG output, not pipes — piping was found to be SIGPIPE-prone
 for clips longer than ~2 seconds. If you touch video preprocessing, keep
 the file-based I/O pattern.
 
-### 6.9 Reasoning budget force-close is teacher-forced, not truncated
+### 6.9 The npm package must ship `mlx.metallib` next to the addon
+
+MLX locates its compiled Metal kernel library at runtime via the absolute
+path baked in at compile time (the cargo build tree — absent on end-user
+machines), falling back to a path colocated with the loaded binary. The
+first published `mlex.js` (0.1.0) omitted the metallib and every load
+failed with "Failed to load the default metallib" on machines without a
+local build tree. `packages/node/copy-metallib.mjs` (chained into both
+`npm run build` variants) copies the freshest
+`target/**/build/mlex-*/out/lib/mlx.metallib` into the package directory,
+and `package.json`'s `files` includes `*.metallib`. Don't remove either
+half.
+
+### 6.10 Tool-call payloads and value spellings vary per template, not per family
+
+Three findings from wiring real mlx-community checkpoints into an agent
+harness:
+
+- Newer Qwen3.5/NemotronH templates render tool calls as
+  `<tool_call><function=NAME><parameter=KEY>VALUE</parameter>...</function></tool_call>`
+  (XML-function style), not Hermes JSON — `parse_hermes_payload` tries
+  JSON first and falls back to the XML parser. XML parameter values are
+  coerced through a JSON parse when they form a complete JSON value and
+  stay plain strings otherwise.
+- Gemma4 templates wrap string argument values in a dedicated special
+  quote token whose raw decode is `<|"|>` (marker parsing runs over raw
+  decodes per §6.5, so it survives into the parser) —
+  `parse_gemma_scalar` normalizes it to a plain quote.
+- Streamed marker remnants: markers whose spelling is (partly) ordinary
+  tokens leak their display text into the token stream — Qwen's
+  `<think>`/`</think>` are non-special (display decode keeps them), and
+  Gemma4's `<|channel>thought` open marker ends in the ordinary word
+  `thought`. `StreamClassifier::last_marker()` reports the marker a
+  `classify` call just completed, and `generate.rs`'s
+  `stream_display_text` suppresses that token's remnant so streaming
+  consumers get clean span content (mirroring OpenAI/Anthropic typed
+  deltas, which never include wire markers).
+
+### 6.11 Reasoning budget force-close is teacher-forced, not truncated
 
 `ReasoningBudget`'s force-close (§3.3) doesn't just stop generation early
 when the token budget is hit — it encodes the close marker text back to

@@ -8,7 +8,7 @@ use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi_derive::napi;
 use serde_json::Value as JsonValue;
 
-use mlex::generate::{GenerateOptions, Session};
+use mlex::generate::{FinishReason, GenerateOptions, Session};
 use mlex::sampling::SamplingConfig;
 use mlex::tokenizer::{AudioContent, ChatMessage, ContentPart, ImageContent, VideoContent};
 use mlex::tools::{Tool, ToolCall, ToolFunction};
@@ -214,6 +214,15 @@ fn token_kind_str(k: mlex::streaming::TokenKind) -> &'static str {
     }
 }
 
+fn finish_reason_str(r: FinishReason) -> &'static str {
+    match r {
+        FinishReason::Stop => "stop",
+        FinishReason::Length => "length",
+        FinishReason::ToolCalls => "toolCalls",
+        FinishReason::Aborted => "aborted",
+    }
+}
+
 /// A loaded MLX language model, ready to chat.
 ///
 /// There is no session/conversation handle to manage: like the OpenAI and
@@ -322,6 +331,7 @@ impl MlexModel {
             tool_calls: reply.tool_calls.into_iter().map(JsToolCall::from).collect(),
             usage: JsUsage::from(reply.usage),
             reasoning: reply.reasoning,
+            finish_reason: finish_reason_str(reply.finish_reason).to_string(),
         })
     }
 
@@ -355,6 +365,13 @@ pub struct JsGenerateResult {
     /// span; pass it back via `reasoningContent` on the next assistant
     /// turn to preserve it in multi-turn history.
     pub reasoning: Option<String>,
+    /// Why generation stopped, mirroring OpenAI's `finish_reason` /
+    /// Anthropic's `stop_reason`: `"stop"` (the model emitted an
+    /// end-of-sequence token - a natural end of turn), `"length"`
+    /// (`options.maxTokens` was exhausted), `"toolCalls"` (the reply
+    /// issued one or more tool calls), or `"aborted"` (the `onToken`
+    /// callback stopped generation early).
+    pub finish_reason: String,
 }
 
 /// Token accounting for one [`MlexModel::generate`] call.

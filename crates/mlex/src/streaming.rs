@@ -45,13 +45,19 @@ pub struct StreamClassifier {
     state: TokenKind,
     reasoning_close: &'static str,
     tail: String,
+    last_marker: Option<&'static str>,
 }
 
 impl StreamClassifier {
     pub fn new(tool_format: ToolCallFormat) -> Self {
         let (tool_open, tool_close) = match tool_format {
             ToolCallFormat::Hermes => ("<tool_call>", "</tool_call>"),
-            ToolCallFormat::Gemma => ("<|tool_call>call:", "<tool_call|>"),
+            // The parser's full open marker is `<|tool_call>call:`, but the
+            // classifier keys on the special token alone: `call` and `:`
+            // arrive as separate ordinary tokens after it, and waiting for
+            // them would misclassify those tokens (and everything until the
+            // trailing window catches up) as text.
+            ToolCallFormat::Gemma => ("<|tool_call>", "<tool_call|>"),
             ToolCallFormat::None => ("", ""),
         };
         StreamClassifier {
@@ -60,7 +66,18 @@ impl StreamClassifier {
             state: TokenKind::Text,
             reasoning_close: "",
             tail: String::new(),
+            last_marker: None,
         }
+    }
+
+    /// The open/close marker string the most recent [`StreamClassifier::classify`]
+    /// call completed, if any. Lets the caller suppress a marker's own
+    /// (display-decoded) remnant from user-facing streamed text - e.g.
+    /// Gemma4's `<|channel>thought` open marker spans a special token
+    /// (display-empty) plus the ordinary word `thought`, which would
+    /// otherwise leak into the reasoning stream.
+    pub fn last_marker(&self) -> Option<&'static str> {
+        self.last_marker
     }
 
     /// Seed the classifier as if `open` (a reasoning marker) had already
@@ -80,6 +97,7 @@ impl StreamClassifier {
     /// which span it belongs to and updating internal state for the
     /// next call.
     pub fn classify(&mut self, piece: &str) -> TokenKind {
+        self.last_marker = None;
         self.tail.push_str(piece);
         if self.tail.len() > TAIL_CAP {
             let mut cut = self.tail.len() - TAIL_CAP;
@@ -91,17 +109,19 @@ impl StreamClassifier {
 
         match self.state {
             TokenKind::Text => {
-                if let Some((_, close)) = MARKER_PAIRS
+                if let Some((open, close)) = MARKER_PAIRS
                     .iter()
                     .find(|(open, _)| self.tail.contains(open))
                 {
                     self.state = TokenKind::Reasoning;
                     self.reasoning_close = close;
+                    self.last_marker = Some(open);
                     self.tail.clear();
                     return TokenKind::Reasoning;
                 }
                 if !self.tool_open.is_empty() && self.tail.contains(self.tool_open) {
                     self.state = TokenKind::ToolCall;
+                    self.last_marker = Some(self.tool_open);
                     self.tail.clear();
                     return TokenKind::ToolCall;
                 }
@@ -110,6 +130,7 @@ impl StreamClassifier {
             TokenKind::Reasoning => {
                 if self.tail.contains(self.reasoning_close) {
                     self.state = TokenKind::Text;
+                    self.last_marker = Some(self.reasoning_close);
                     self.tail.clear();
                 }
                 TokenKind::Reasoning
@@ -117,6 +138,7 @@ impl StreamClassifier {
             TokenKind::ToolCall => {
                 if self.tail.contains(self.tool_close) {
                     self.state = TokenKind::Text;
+                    self.last_marker = Some(self.tool_close);
                     self.tail.clear();
                 }
                 TokenKind::ToolCall

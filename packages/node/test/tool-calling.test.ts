@@ -34,12 +34,16 @@ describe("tool calling", () => {
         });
         expect(typeof result.text).toBe("string");
         expect(Array.isArray(result.toolCalls)).toBe(true);
+        expect(["stop", "length", "toolCalls", "aborted"]).toContain(
+          result.finishReason,
+        );
         if (result.toolCalls.length > 0) {
           anyCallSeen = true;
           expect(result.toolCalls[0].name).toBe("get_weather");
           expect(() =>
             JSON.parse(result.toolCalls[0].argumentsJson),
           ).not.toThrow();
+          expect(result.finishReason).toBe("toolCalls");
         }
       }
       if (!anyCallSeen) {

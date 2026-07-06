@@ -60,6 +60,47 @@ pub struct Usage {
     pub completion_tokens: usize,
 }
 
+/// Why one [`Session::generate_cached`] call stopped generating,
+/// mirroring OpenAI's `finish_reason` / Anthropic's `stop_reason`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum FinishReason {
+    /// The model emitted an end-of-sequence token - a natural end of
+    /// turn.
+    #[default]
+    Stop,
+    /// [`GenerateOptions::max_tokens`] was exhausted before the model
+    /// finished its reply.
+    Length,
+    /// The reply issued one or more tool calls (see
+    /// [`GenerateReply::tool_calls`]).
+    ToolCalls,
+    /// The caller's `on_token` callback stopped generation early by
+    /// returning `false`.
+    Aborted,
+}
+
+/// Classify why generation stopped, given what the decode loop produced.
+/// Tool calls take precedence (the natural "end" of a tool-calling turn,
+/// whether or not an eos token followed), then a trailing eos token,
+/// then an explicit caller abort; anything else means the token budget
+/// ran out.
+fn classify_finish(
+    generated: &[u32],
+    eos_ids: &[u32],
+    has_tool_calls: bool,
+    aborted: bool,
+) -> FinishReason {
+    if has_tool_calls {
+        FinishReason::ToolCalls
+    } else if generated.last().is_some_and(|id| eos_ids.contains(id)) {
+        FinishReason::Stop
+    } else if aborted {
+        FinishReason::Aborted
+    } else {
+        FinishReason::Length
+    }
+}
+
 /// Result of one [`Session::generate_cached`] call.
 #[derive(Debug, Clone, Default)]
 pub struct GenerateReply {
@@ -74,6 +115,9 @@ pub struct GenerateReply {
     /// `enable_thinking` was explicitly requested, since some checkpoints
     /// reason unconditionally. See [`crate::reasoning`].
     pub reasoning: Option<String>,
+    /// Why generation stopped - a natural end of turn, the token budget,
+    /// a tool call, or a caller-initiated abort.
+    pub finish_reason: FinishReason,
 }
 
 /// Generation parameters for a single call.
@@ -559,7 +603,7 @@ impl Session {
             let kind = classifier.classify(&raw_text);
             let keep_going = on_token(GeneratedToken {
                 id: next,
-                text: text.clone(),
+                text: stream_display_text(&classifier, text.clone()),
                 finished,
                 kind,
             });
@@ -586,7 +630,7 @@ impl Session {
                     let kind = classifier.classify(&raw_piece);
                     if !on_token(GeneratedToken {
                         id,
-                        text: piece,
+                        text: stream_display_text(&classifier, piece),
                         finished: false,
                         kind,
                     }) {
@@ -651,6 +695,7 @@ impl Session {
         };
 
         let mut generated_ids = Vec::new();
+        let mut aborted = false;
         let ids = self.generate_with_media_inner(
             new_suffix,
             &new_media,
@@ -659,7 +704,11 @@ impl Session {
             pending_reasoning,
             |tok| {
                 generated_ids.push(tok.id);
-                on_token(tok)
+                let keep_going = on_token(tok);
+                if !keep_going {
+                    aborted = true;
+                }
+                keep_going
             },
         )?;
         debug_assert_eq!(ids, generated_ids);
@@ -702,17 +751,23 @@ impl Session {
             None => reasoning::split_reasoning(&raw_text),
         };
         let format = self.tool_call_format();
-        let calls = if matches!(format, ToolCallFormat::None) {
-            Vec::new()
+        let (text, calls) = if matches!(format, ToolCallFormat::None) {
+            (text, Vec::new())
         } else {
-            crate::tools::parse_tool_calls(&text, format)
+            let calls = crate::tools::parse_tool_calls(&text, format);
+            // Keep `text` and `tool_calls` separate (OpenAI/Anthropic
+            // style) rather than leaving raw call syntax in the reply.
+            (crate::tools::strip_tool_calls(&text, format), calls)
         };
+        let finish_reason =
+            classify_finish(&generated_ids, eos_ids, !calls.is_empty(), aborted);
 
         Ok(GenerateReply {
             text,
             tool_calls: calls,
             usage,
             reasoning,
+            finish_reason,
         })
     }
 
@@ -738,6 +793,77 @@ pub struct MediaInputs {
 impl MediaInputs {
     pub fn is_empty(&self) -> bool {
         self.images.is_empty() && self.audios.is_empty()
+    }
+}
+
+/// Display text for one streamed token, with marker remnants suppressed.
+///
+/// When [`StreamClassifier::classify`] just completed a reasoning or
+/// tool-call marker on this token, whatever display text the token
+/// carries is (part of) the marker's own spelling, not content - e.g.
+/// Qwen's `<think>`/`</think>` (non-special tokens, so their display
+/// decode keeps the literal text) or the trailing `thought` of Gemma4's
+/// `<|channel>thought` open marker (the `<|channel>` special token
+/// display-decodes empty, but `thought` is an ordinary word token).
+/// Streaming consumers should see clean span content - mirroring how
+/// OpenAI/Anthropic's typed deltas never include the wire markers - so
+/// suppress the remnant. The containment check keeps genuine content
+/// safe: it only ever applies to the single marker-completing token.
+fn stream_display_text(classifier: &StreamClassifier, text: String) -> String {
+    match classifier.last_marker() {
+        Some(marker) => {
+            let trimmed = text.trim();
+            if !trimmed.is_empty() && marker.contains(trimmed) {
+                String::new()
+            } else {
+                text
+            }
+        }
+        None => text,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const EOS: &[u32] = &[2, 106];
+
+    #[test]
+    fn finish_stop_on_trailing_eos() {
+        assert_eq!(
+            classify_finish(&[5, 9, 2], EOS, false, false),
+            FinishReason::Stop
+        );
+    }
+
+    #[test]
+    fn finish_tool_calls_takes_precedence_over_eos() {
+        assert_eq!(
+            classify_finish(&[5, 9, 2], EOS, true, false),
+            FinishReason::ToolCalls
+        );
+    }
+
+    #[test]
+    fn finish_length_when_no_eos_and_not_aborted() {
+        assert_eq!(
+            classify_finish(&[5, 9, 7], EOS, false, false),
+            FinishReason::Length
+        );
+    }
+
+    #[test]
+    fn finish_aborted_when_callback_stopped_early() {
+        assert_eq!(
+            classify_finish(&[5, 9, 7], EOS, false, true),
+            FinishReason::Aborted
+        );
+    }
+
+    #[test]
+    fn finish_empty_generation_without_abort_is_length() {
+        assert_eq!(classify_finish(&[], EOS, false, false), FinishReason::Length);
     }
 }
 
