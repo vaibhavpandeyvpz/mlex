@@ -1,5 +1,6 @@
 use std::env;
 use std::path::PathBuf;
+use std::process::Command;
 
 fn main() {
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
@@ -52,6 +53,7 @@ fn main() {
         println!("cargo:rustc-link-lib=framework=Foundation");
         println!("cargo:rustc-link-lib=framework=QuartzCore");
         println!("cargo:rustc-link-lib=framework=Accelerate");
+        link_clang_rt_builtins();
     } else {
         println!("cargo:rustc-link-lib=stdc++");
     }
@@ -89,4 +91,37 @@ fn main() {
     bindings
         .write_to_file(out_dir.join("bindings.rs"))
         .expect("failed to write bindings.rs");
+}
+
+/// MLX's C++ uses `__builtin_available`, which clang lowers to a call to
+/// `___isPlatformVersionAtLeast` from compiler-rt's builtins. Apple clang
+/// links `libclang_rt.osx.a` implicitly, but rustc drives the final link
+/// with its own `compiler_builtins` (which lacks that symbol), so we must
+/// link clang's builtins archive explicitly.
+fn link_clang_rt_builtins() {
+    let clang = env::var("CC").unwrap_or_else(|_| "clang".to_string());
+    let output = Command::new(&clang)
+        .arg("--print-resource-dir")
+        .output()
+        .expect("failed to run clang --print-resource-dir");
+    if !output.status.success() {
+        panic!(
+            "clang --print-resource-dir failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    let resource_dir = PathBuf::from(String::from_utf8(output.stdout).unwrap().trim());
+    let darwin_lib_dir = resource_dir.join("lib/darwin");
+    let lib = darwin_lib_dir.join("libclang_rt.osx.a");
+    if !lib.exists() {
+        panic!(
+            "libclang_rt.osx.a not found in {} (needed for ___isPlatformVersionAtLeast)",
+            darwin_lib_dir.display()
+        );
+    }
+    println!(
+        "cargo:rustc-link-search=native={}",
+        darwin_lib_dir.display()
+    );
+    println!("cargo:rustc-link-lib=static=clang_rt.osx");
 }
