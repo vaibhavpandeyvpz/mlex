@@ -89,6 +89,14 @@ pub fn strip_tool_calls(text: &str, format: ToolCallFormat) -> String {
         ToolCallFormat::Gemma => ("<|tool_call>", "<tool_call|>"),
         ToolCallFormat::None => return text.to_string(),
     };
+    // No span to remove: return `text` untouched rather than falling
+    // through to the unconditional `.trim()` below, which would silently
+    // eat meaningful leading/trailing whitespace from every plain-text
+    // reply (no tool call involved at all) on every checkpoint using this
+    // format - e.g. a final answer's trailing `" "` token.
+    if !text.contains(open) {
+        return text.to_string();
+    }
     let mut out = String::with_capacity(text.len());
     let mut rest = text;
     while let Some(start) = rest.find(open) {
