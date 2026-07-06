@@ -23,14 +23,14 @@ Why another inference runtime? Because Apple Silicon deserves a first-class, dep
 
 Any checkpoint below works across _every_ quantization scheme `mlex` supports (bf16/fp16, affine 2–8 bit, mxfp4/mxfp8/nvfp4, OptiQ, QAT, ...) — quantization is resolved dynamically from `config.json`, not hardcoded per model.
 
-| `model_type`                                  | Family               | Notes                                                      |
-| --------------------------------------------- | -------------------- | ---------------------------------------------------------- |
-| `qwen2`, `llama`                              | Qwen2 / Llama-shaped | Also covers MiniCPM5 and similar vanilla-GQA checkpoints   |
-| `qwen3`                                       | Qwen3                | Dense, with QK-norm                                        |
-| `qwen3_5`, `qwen3_5_moe` (+ `_text` variants) | Qwen3.5              | Dense, Mixture-of-Experts, and vision-capable variants     |
-| `gemma4`, `gemma4_text`, `gemma4_unified`, `gemma4_unified_text` | Gemma4 | Text-only, unified, and multi-modal (**vision + audio**) variants |
-| `nemotron_h`                                  | NemotronH            | Hybrid Mamba2 / GatedDelta / attention layers              |
-| `dhara_ar`                                    | DharaAR              | Canon convolution layers, post-RoPE QK-norm, logit softcap |
+| `model_type`                                                     | Family               | Notes                                                             |
+| ---------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------- |
+| `qwen2`, `llama`                                                 | Qwen2 / Llama-shaped | Also covers MiniCPM5 and similar vanilla-GQA checkpoints          |
+| `qwen3`                                                          | Qwen3                | Dense, with QK-norm                                               |
+| `qwen3_5`, `qwen3_5_moe` (+ `_text` variants)                    | Qwen3.5              | Dense, Mixture-of-Experts, and vision-capable variants            |
+| `gemma4`, `gemma4_text`, `gemma4_unified`, `gemma4_unified_text` | Gemma4               | Text-only, unified, and multi-modal (**vision + audio**) variants |
+| `nemotron_h`                                                     | NemotronH            | Hybrid Mamba2 / GatedDelta / attention layers                     |
+| `dhara_ar`                                                       | DharaAR              | Canon convolution layers, post-RoPE QK-norm, logit softcap        |
 
 Multi-modal support is currently split by family: image input works on Qwen3.5 checkpoints that ship vision weights, while Gemma4 checkpoints with vision/audio tower weights support image, audio, and video input (e.g. `mlx-community/gemma-4-e2b-it-OptiQ-4bit`).
 

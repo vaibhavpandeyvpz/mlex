@@ -300,7 +300,7 @@ the actual build (`napi build`) and `vitest` for tests.
 
 **Never run the Rust or Node integration/test suites unscoped** (plain
 `cargo test -p mlex` or `npm test` with a large/full `models/` directory
-present). Both discover and run against *every* downloaded model by
+present). Both discover and run against _every_ downloaded model by
 default (§5.1/§5.2), and real checkpoints are multi-GB Metal/GPU forward
 passes — an unscoped run against several checkpoints can run for a very
 long time (effectively hanging from the caller's perspective) and/or
@@ -523,20 +523,20 @@ _usable_ answer rather than just a shorter, incomplete thought.
 
 ## 7. Quick reference: "how do I test X?"
 
-| You want to...                              | Do this                                                                                                                                                      |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Run all fast unit tests (no models)         | `cargo test -p mlex --lib`                                                                                                                                   |
-| Run everything against local models         | `cargo test --release -p mlex -- --test-threads=1`                                                                                                           |
-| Run against one specific model only         | `MLEX_MODELS_DIR=/tmp/some-dir cargo test --release -p mlex -- --test-threads=1` (populate the dir with one symlinked `models--org--name` entry)             |
-| Include large, non-CI-safe local models     | add `MLEX_INCLUDE_LARGE_MODELS=1`                                                                                                                            |
-| Change the CI-eligibility memory ceiling    | `MLEX_MAX_MODEL_GB=<n>`                                                                                                                                      |
-| Test one architecture family                | filter via `common::registry_for_family("gemma4_text")` etc. inside the test, or just point `MLEX_MODELS_DIR` at a dir with only that family                 |
-| Test reasoning/streaming end-to-end quickly | `cargo run --release -p mlex --example reasoning -- <model_dir>`                                                                                             |
+| You want to...                              | Do this                                                                                                                                                          |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Run all fast unit tests (no models)         | `cargo test -p mlex --lib`                                                                                                                                       |
+| Run everything against local models         | `cargo test --release -p mlex -- --test-threads=1`                                                                                                               |
+| Run against one specific model only         | `MLEX_MODELS_DIR=/tmp/some-dir cargo test --release -p mlex -- --test-threads=1` (populate the dir with one symlinked `models--org--name` entry)                 |
+| Include large, non-CI-safe local models     | add `MLEX_INCLUDE_LARGE_MODELS=1`                                                                                                                                |
+| Change the CI-eligibility memory ceiling    | `MLEX_MAX_MODEL_GB=<n>`                                                                                                                                          |
+| Test one architecture family                | filter via `common::registry_for_family("gemma4_text")` etc. inside the test, or just point `MLEX_MODELS_DIR` at a dir with only that family                     |
+| Test reasoning/streaming end-to-end quickly | `cargo run --release -p mlex --example reasoning -- <model_dir>`                                                                                                 |
 | Test raw generation/logits debugging        | `cargo run --release -p mlex --example generate -- <model_dir>` (supports `MLEX_DEBUG_LOGITS`/`MLEX_DEBUG_LAYERS` env vars for layer-by-layer numeric debugging) |
-| Rebuild the Node addon after a Rust change  | `cd packages/node && npm run build` (regenerates `index.js`/`index.d.ts` too)                                                                                |
-| Run the Node suite                          | `cd packages/node && npm test` (run the Rust suite first if `target/mlex-test-cache/model-memory.json` doesn't exist yet)                                    |
-| Get Rust coverage                           | `./scripts/coverage-rust.sh --all`                                                                                                                           |
-| Get Node coverage                           | `cd packages/node && npm run test:coverage`                                                                                                                  |
+| Rebuild the Node addon after a Rust change  | `cd packages/node && npm run build` (regenerates `index.js`/`index.d.ts` too)                                                                                    |
+| Run the Node suite                          | `cd packages/node && npm test` (run the Rust suite first if `target/mlex-test-cache/model-memory.json` doesn't exist yet)                                        |
+| Get Rust coverage                           | `./scripts/coverage-rust.sh --all`                                                                                                                               |
+| Get Node coverage                           | `cd packages/node && npm run test:coverage`                                                                                                                      |
 
 ## 8. Conventions to preserve
 

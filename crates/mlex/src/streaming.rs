@@ -63,6 +63,19 @@ impl StreamClassifier {
         }
     }
 
+    /// Seed the classifier as if `open` (a reasoning marker) had already
+    /// been observed and its text already emitted - used when the model's
+    /// chat-template prompt itself opens the reasoning span (see
+    /// `crate::reasoning::pending_marker`), so the model's *generated*
+    /// text - which never contains the literal open marker on those
+    /// checkpoints - is still classified as `Reasoning` from its first
+    /// token.
+    pub(crate) fn seed_reasoning(&mut self, close: &'static str) {
+        self.state = TokenKind::Reasoning;
+        self.reasoning_close = close;
+        self.tail.clear();
+    }
+
     /// Classify one newly generated token's decoded text, returning
     /// which span it belongs to and updating internal state for the
     /// next call.
@@ -158,6 +171,29 @@ mod tests {
         assert_eq!(kinds[2], TokenKind::Reasoning);
         assert_eq!(kinds[3], TokenKind::Reasoning);
         assert_eq!(kinds[4], TokenKind::Text);
+    }
+
+    #[test]
+    fn seed_reasoning_tags_generation_from_the_first_token() {
+        // Mirrors checkpoints (Qwen3.5, NemotronH) whose chat template
+        // bakes the open marker into the generation prompt, so it's never
+        // present in the model's own generated text.
+        let mut c = StreamClassifier::new(ToolCallFormat::None);
+        c.seed_reasoning("</think>");
+        let kinds: Vec<_> = ["let", " me", " think", "</think>", "answer"]
+            .iter()
+            .map(|p| c.classify(p))
+            .collect();
+        assert_eq!(
+            kinds,
+            vec![
+                TokenKind::Reasoning,
+                TokenKind::Reasoning,
+                TokenKind::Reasoning,
+                TokenKind::Reasoning,
+                TokenKind::Text,
+            ]
+        );
     }
 
     #[test]

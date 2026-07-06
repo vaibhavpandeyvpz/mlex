@@ -264,6 +264,24 @@ impl Session {
         tools: Option<&[crate::tools::Tool]>,
         enable_thinking: Option<bool>,
     ) -> Result<(Vec<u32>, MediaInputs)> {
+        let (ids, media, _pending_reasoning) =
+            self.encode_chat_with_media_full_inner(messages, tools, enable_thinking)?;
+        Ok((ids, media))
+    }
+
+    /// Same as [`Session::encode_chat_with_media_full`], but additionally
+    /// returns whether the rendered prompt itself already opened an
+    /// unclosed reasoning span (see [`reasoning::pending_marker`]) - used
+    /// internally by [`Session::generate_cached`] to correctly classify/
+    /// extract reasoning on checkpoints (Qwen3/3.5/3.6, NemotronH) whose
+    /// template bakes the open marker into the generation prompt rather
+    /// than letting the model generate it.
+    fn encode_chat_with_media_full_inner(
+        &self,
+        messages: &[ChatMessage],
+        tools: Option<&[crate::tools::Tool]>,
+        enable_thinking: Option<bool>,
+    ) -> Result<(Vec<u32>, MediaInputs, Option<(&'static str, &'static str)>)> {
         // Reasoning is opt-in: several hybrid-thinking checkpoints (Qwen3/
         // 3.5/3.6, MiniCPM5) only special-case `enable_thinking` in their
         // template when it's explicitly `false` and otherwise open a
@@ -276,6 +294,7 @@ impl Session {
         let prompt =
             self.tokenizer
                 .apply_chat_template_full(messages, true, tools, enable_thinking)?;
+        let pending_reasoning = reasoning::pending_marker(&prompt);
         let base_ids = self.tokenizer.encode(&prompt)?;
 
         let parts: Vec<&ContentPart> = messages.iter().flat_map(|m| m.content.iter()).collect();
@@ -284,7 +303,7 @@ impl Session {
             .any(|p| matches!(p, ContentPart::Image(_) | ContentPart::Video(_)));
         let has_audio = parts.iter().any(|p| matches!(p, ContentPart::Audio(_)));
         if !has_images && !has_audio {
-            return Ok((base_ids, MediaInputs::default()));
+            return Ok((base_ids, MediaInputs::default(), pending_reasoning));
         }
 
         let image_params = if has_images {
@@ -399,7 +418,7 @@ impl Session {
             expanded.push(t);
         }
 
-        Ok((expanded, media))
+        Ok((expanded, media, pending_reasoning))
     }
 
     /// Generate up to `options.max_tokens` tokens continuing `prompt_ids`,
@@ -431,7 +450,7 @@ impl Session {
         let prompt_arr = Array::from_slice(new_prompt_ids, &[1, new_prompt_ids.len() as i32]);
         let logits = self.model.forward(&prompt_arr, caches)?;
         let next = self.sample_last(&logits, &mut sampler)?;
-        self.decode_loop(next, caches, sampler, options, on_token)
+        self.decode_loop(next, caches, sampler, options, None, on_token)
     }
 
     /// Same as [`Session::generate`], but the prefill forward pass splices
@@ -461,6 +480,28 @@ impl Session {
         options: GenerateOptions,
         on_token: impl FnMut(GeneratedToken) -> bool,
     ) -> Result<Vec<u32>> {
+        self.generate_with_media_inner(new_prompt_ids, media, caches, options, None, on_token)
+    }
+
+    /// Same as [`Session::generate_with_media`], but additionally accepts
+    /// `pending_reasoning` - the `(open, close)` marker pair the caller
+    /// already knows the prompt opened (unclosed) at its very end, per
+    /// [`reasoning::pending_marker`]. Used internally by
+    /// [`Session::generate_cached`] so the decode loop's
+    /// [`StreamClassifier`]/[`ReasoningBudget`] treat generation as
+    /// already inside that reasoning span from its very first token,
+    /// matching checkpoints (Qwen3/3.5/3.6, NemotronH) whose chat template
+    /// bakes the open marker into the generation prompt instead of
+    /// leaving the model to generate it.
+    fn generate_with_media_inner(
+        &self,
+        new_prompt_ids: &[u32],
+        media: &MediaInputs,
+        caches: &mut [crate::models::cache::LayerCache],
+        options: GenerateOptions,
+        pending_reasoning: Option<(&'static str, &'static str)>,
+        on_token: impl FnMut(GeneratedToken) -> bool,
+    ) -> Result<Vec<u32>> {
         let mut sampler = Sampler::new(options.sampling);
         let prompt_arr = Array::from_slice(new_prompt_ids, &[1, new_prompt_ids.len() as i32]);
         let logits = if media.is_empty() {
@@ -470,7 +511,7 @@ impl Session {
                 .forward_with_media(&prompt_arr, &media.images, &media.audios, caches)?
         };
         let next = self.sample_last(&logits, &mut sampler)?;
-        self.decode_loop(next, caches, sampler, options, on_token)
+        self.decode_loop(next, caches, sampler, options, pending_reasoning, on_token)
     }
 
     /// Shared token-by-token decode loop used by both
@@ -490,11 +531,18 @@ impl Session {
         caches: &mut [crate::models::cache::LayerCache],
         mut sampler: Sampler,
         options: GenerateOptions,
+        pending_reasoning: Option<(&'static str, &'static str)>,
         mut on_token: impl FnMut(GeneratedToken) -> bool,
     ) -> Result<Vec<u32>> {
         let eos_ids = self.tokenizer.eos_token_ids();
         let mut budget = options.reasoning_budget_tokens.map(ReasoningBudget::new);
         let mut classifier = StreamClassifier::new(self.tool_call_format());
+        if let Some(pair @ (_, close)) = pending_reasoning {
+            classifier.seed_reasoning(close);
+            if let Some(b) = budget.as_mut() {
+                b.seed_open(pair);
+            }
+        }
 
         let mut generated = Vec::with_capacity(options.max_tokens);
         for _ in 0..options.max_tokens {
@@ -585,8 +633,8 @@ impl Session {
         options: GenerateOptions,
         mut on_token: impl FnMut(GeneratedToken) -> bool,
     ) -> Result<GenerateReply> {
-        let (full_ids, media) =
-            self.encode_chat_with_media_full(messages, tools, options.enable_thinking)?;
+        let (full_ids, media, pending_reasoning) =
+            self.encode_chat_with_media_full_inner(messages, tools, options.enable_thinking)?;
 
         let (mut caches, fed_len, fed_images, fed_audios) = {
             let mut pool = self.prompt_cache.lock().unwrap();
@@ -603,11 +651,17 @@ impl Session {
         };
 
         let mut generated_ids = Vec::new();
-        let ids =
-            self.generate_with_media(new_suffix, &new_media, &mut caches, options, |tok| {
+        let ids = self.generate_with_media_inner(
+            new_suffix,
+            &new_media,
+            &mut caches,
+            options,
+            pending_reasoning,
+            |tok| {
                 generated_ids.push(tok.id);
                 on_token(tok)
-            })?;
+            },
+        )?;
         debug_assert_eq!(ids, generated_ids);
 
         let usage = Usage {
@@ -639,7 +693,14 @@ impl Session {
             .filter(|id| !eos_ids.contains(id))
             .collect();
         let raw_text = self.tokenizer.decode_raw(&content_ids)?;
-        let (reasoning, text) = reasoning::split_reasoning(&raw_text);
+        // If the prompt itself already opened a reasoning span (see
+        // `pending_reasoning` above), the model's generated text never
+        // contains the literal open marker - splice it back on so
+        // `split_reasoning` still finds and extracts the span.
+        let (reasoning, text) = match pending_reasoning {
+            Some((open, _)) => reasoning::split_reasoning(&format!("{open}{raw_text}")),
+            None => reasoning::split_reasoning(&raw_text),
+        };
         let format = self.tool_call_format();
         let calls = if matches!(format, ToolCallFormat::None) {
             Vec::new()

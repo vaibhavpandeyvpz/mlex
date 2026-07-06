@@ -52,6 +52,35 @@ pub fn split_reasoning(text: &str) -> (Option<String>, String) {
     (None, text.to_string())
 }
 
+/// Detect whether a *rendered chat-template prompt* (i.e. the text fed to
+/// the model, not its output) already opens an unclosed reasoning span at
+/// its very end.
+///
+/// Several `enable_thinking`-style templates (Qwen3/3.5/3.6, NemotronH)
+/// bake the opening marker into the generation prompt itself - e.g.
+/// Qwen3.5's template ends `add_generation_prompt` with
+/// `'<|im_start|>assistant\n<think>\n'` rather than letting the model
+/// generate `<think>` itself. On those checkpoints the model's *generated*
+/// text starts already inside the reasoning span and never contains the
+/// literal open marker, so [`split_reasoning`]/`StreamClassifier` would
+/// otherwise never detect it (Gemma4's template, by contrast, leaves the
+/// open marker for the model to generate itself when thinking is
+/// enabled - see its template's `add_generation_prompt` block - so it
+/// needs no such treatment).
+///
+/// Returns the `(open, close)` pair whose `open` marker the prompt ends
+/// with (after trimming trailing whitespace), so callers can seed
+/// [`ReasoningBudget`] / `crate::streaming::StreamClassifier` as if that
+/// marker had just been generated, and prepend it back before calling
+/// [`split_reasoning`] on the model's actual output.
+pub(crate) fn pending_marker(prompt: &str) -> Option<(&'static str, &'static str)> {
+    let trimmed = prompt.trim_end();
+    MARKER_PAIRS
+        .iter()
+        .find(|(open, _)| trimmed.ends_with(open))
+        .copied()
+}
+
 /// Tracks generated text against a token budget for the *reasoning* span
 /// only, so [`crate::generate::Session`]'s decode loop can force it closed
 /// once the budget is exhausted - mirroring Anthropic's extended-thinking
@@ -73,6 +102,17 @@ impl ReasoningBudget {
             open_close: None,
             closed: false,
             tokens_since_open: 0,
+        }
+    }
+
+    /// Seed the budget as if `pair.0` (the open marker) had already been
+    /// observed - used when the reasoning span was opened by the *prompt*
+    /// itself rather than by generated text (see
+    /// [`pending_marker`]), so tokens generated from the very first one
+    /// still count against the budget.
+    pub(crate) fn seed_open(&mut self, pair: (&'static str, &'static str)) {
+        if !self.closed && self.open_close.is_none() {
+            self.open_close = Some(pair);
         }
     }
 
@@ -165,6 +205,52 @@ mod tests {
         for _ in 0..200 {
             assert_eq!(budget.observe("more text"), None);
         }
+    }
+
+    #[test]
+    fn pending_marker_detects_qwen_style_generation_prompt() {
+        // Qwen3.5/NemotronH-style templates bake the open marker into the
+        // generation prompt itself instead of letting the model generate
+        // it.
+        let prompt = "<|im_start|>user\nhi<|im_end|>\n<|im_start|>assistant\n<think>\n";
+        assert_eq!(pending_marker(prompt), Some(("<think>", "</think>")));
+    }
+
+    #[test]
+    fn pending_marker_is_none_when_thinking_disabled_and_already_closed() {
+        let prompt = "<|im_start|>assistant\n<think>\n\n</think>\n\n";
+        assert_eq!(pending_marker(prompt), None);
+    }
+
+    #[test]
+    fn pending_marker_is_none_for_gemma_style_prompt_that_leaves_marker_to_model() {
+        let prompt = "<|turn>model\n";
+        assert_eq!(pending_marker(prompt), None);
+    }
+
+    #[test]
+    fn pending_marker_is_none_for_plain_prompt() {
+        assert_eq!(pending_marker("<|im_start|>assistant\n"), None);
+    }
+
+    #[test]
+    fn budget_seed_open_lets_a_pending_span_count_from_the_first_token() {
+        let mut budget = ReasoningBudget::new(2);
+        budget.seed_open(("<think>", "</think>"));
+        assert_eq!(budget.observe("a"), None);
+        assert_eq!(budget.observe("b"), None);
+        assert_eq!(budget.observe("c"), Some("</think>"));
+    }
+
+    #[test]
+    fn budget_seed_open_is_a_noop_once_a_span_is_already_tracked() {
+        let mut budget = ReasoningBudget::new(100);
+        assert_eq!(budget.observe("<think>"), None);
+        // A second seed (e.g. a defensive call site) must not reset the
+        // in-progress span's marker pair.
+        budget.seed_open(("<|channel>thought", "<channel|>"));
+        assert_eq!(budget.observe("hmm"), None);
+        assert_eq!(budget.observe("</think>"), None);
     }
 
     #[test]

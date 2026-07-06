@@ -256,14 +256,14 @@ Full type definitions ship in `index.d.ts`.
 
 ## Supported architectures
 
-| `model_type` in `config.json`                 | Family               | Notes                                                      |
-| --------------------------------------------- | -------------------- | ---------------------------------------------------------- |
-| `qwen2`, `llama`                              | Qwen2 / Llama-shaped | Also covers MiniCPM5 and similar vanilla-GQA checkpoints   |
-| `qwen3`                                       | Qwen3                | Dense, with QK-norm                                        |
-| `qwen3_5`, `qwen3_5_moe` (+ `_text` variants) | Qwen3.5              | Dense, Mixture-of-Experts, and vision-capable variants     |
-| `gemma4`, `gemma4_text`, `gemma4_unified`, `gemma4_unified_text` | Gemma4 | Text-only, unified, and multi-modal (vision + audio) variants |
-| `nemotron_h`                                  | NemotronH            | Hybrid Mamba2 / GatedDelta / attention layers              |
-| `dhara_ar`                                    | DharaAR              | Canon convolution layers, post-RoPE QK-norm, logit softcap |
+| `model_type` in `config.json`                                    | Family               | Notes                                                         |
+| ---------------------------------------------------------------- | -------------------- | ------------------------------------------------------------- |
+| `qwen2`, `llama`                                                 | Qwen2 / Llama-shaped | Also covers MiniCPM5 and similar vanilla-GQA checkpoints      |
+| `qwen3`                                                          | Qwen3                | Dense, with QK-norm                                           |
+| `qwen3_5`, `qwen3_5_moe` (+ `_text` variants)                    | Qwen3.5              | Dense, Mixture-of-Experts, and vision-capable variants        |
+| `gemma4`, `gemma4_text`, `gemma4_unified`, `gemma4_unified_text` | Gemma4               | Text-only, unified, and multi-modal (vision + audio) variants |
+| `nemotron_h`                                                     | NemotronH            | Hybrid Mamba2 / GatedDelta / attention layers                 |
+| `dhara_ar`                                                       | DharaAR              | Canon convolution layers, post-RoPE QK-norm, logit softcap    |
 
 See the [top-level project README](https://github.com/vaibhavpandeyvpz/mlex#readme) for the full picture, including the Rust API and how to build from source.
 
