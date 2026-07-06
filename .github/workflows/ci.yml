@@ -34,8 +34,6 @@ jobs:
             hf_repo: mlx-community/gemma-4-e2b-it-OptiQ-4bit
           - label: gemma4-e2b-qat
             hf_repo: mlx-community/gemma-4-E2B-it-qat-4bit
-          - label: gemma4-e4b-qat-optiq
-            hf_repo: mlx-community/gemma-4-e4b-it-qat-OptiQ-4bit
           - label: minicpm5-1b-optiq
             hf_repo: mlx-community/MiniCPM5-1B-OptiQ-4bit
           - label: nemotron-4b-optiq
@@ -50,10 +48,6 @@ jobs:
             hf_repo: mlx-community/Qwen3.5-0.8B-OptiQ-4bit
           - label: qwen35-2b-optiq
             hf_repo: mlx-community/Qwen3.5-2B-OptiQ-4bit
-          - label: qwen35-4b-optiq
-            hf_repo: mlx-community/Qwen3.5-4B-OptiQ-4bit
-          - label: qwen35-9b-mlx
-            hf_repo: mlx-community/Qwen3.5-9B-MLX-4bit
     steps:
       - uses: actions/checkout@v4
 
