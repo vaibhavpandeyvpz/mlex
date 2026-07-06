@@ -5,11 +5,11 @@ import { registry } from "./models.js";
 const weatherTool = {
   name: "get_weather",
   description: "Get the current weather for a location",
-  parametersJson: JSON.stringify({
+  parameters: {
     type: "object",
     properties: { location: { type: "string", description: "City name" } },
     required: ["location"],
-  }),
+  },
 };
 
 describe("tool calling", () => {

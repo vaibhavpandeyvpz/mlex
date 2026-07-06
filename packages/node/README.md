@@ -145,11 +145,11 @@ const tools = [
   {
     name: "get_weather",
     description: "Get the current weather for a city",
-    parametersJson: JSON.stringify({
+    parameters: {
       type: "object",
       properties: { city: { type: "string" } },
       required: ["city"],
-    }),
+    },
   },
 ];
 
@@ -229,7 +229,7 @@ interface JsToken {
 interface JsTool {
   name: string;
   description?: string;
-  parametersJson: string; // JSON Schema, as a string
+  parameters: object; // JSON Schema
 }
 
 interface JsToolCall {

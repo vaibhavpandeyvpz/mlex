@@ -85,21 +85,19 @@ impl JsChatMessage {
 pub struct JsTool {
     pub name: String,
     pub description: Option<String>,
-    /// JSON Schema for the function's arguments, as a JSON string (e.g.
-    /// `'{"type": "object", "properties": {...}}'`).
-    pub parameters_json: String,
+    /// JSON Schema for the function's arguments (e.g.
+    /// `{ type: "object", properties: {...} }`).
+    pub parameters: JsonValue,
 }
 
 impl JsTool {
     fn into_core(self) -> Result<Tool> {
-        let parameters: JsonValue = serde_json::from_str(&self.parameters_json)
-            .map_err(|e| Error::from_reason(format!("invalid parameters_json: {e}")))?;
         Ok(Tool {
             kind: "function".to_string(),
             function: ToolFunction {
                 name: self.name,
                 description: self.description,
-                parameters,
+                parameters: self.parameters,
             },
         })
     }

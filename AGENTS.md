@@ -298,6 +298,19 @@ the actual build (`napi build`) and `vitest` for tests.
 
 ## 5. Testing
 
+**Never run the Rust or Node integration/test suites unscoped** (plain
+`cargo test -p mlex` or `npm test` with a large/full `models/` directory
+present). Both discover and run against *every* downloaded model by
+default (§5.1/§5.2), and real checkpoints are multi-GB Metal/GPU forward
+passes — an unscoped run against several checkpoints can run for a very
+long time (effectively hanging from the caller's perspective) and/or
+exhaust all available unified memory, taking down the machine. Always
+point `MLEX_MODELS_DIR` at a directory containing symlinks to only the
+specific model(s) the task actually needs before running either suite —
+see the scoped-run pattern in §5.4 and the commands in §7. If you only
+need fast unit coverage with no models at all, use `cargo test -p mlex
+--lib`.
+
 ### 5.1 Rust (`crates/mlex/tests/`)
 
 ```bash
@@ -385,11 +398,14 @@ it, only unit tests run (fast, no models).
 
 ### 5.4 What NOT to do when testing locally
 
-- Don't run the full integration suite against every downloaded model by
-  default if you're memory-constrained — scope `MLEX_MODELS_DIR` to a
+- Don't run the full integration suite (Rust or Node) against every
+  downloaded model by default — always scope `MLEX_MODELS_DIR` to a
   directory containing symlinks to just the model(s) you need (see the
   pattern used throughout this repo's history: a temp dir with one
-  symlinked Gemma4 checkpoint, e.g. `/tmp/mlex-gemma4-only/`).
+  symlinked Gemma4 checkpoint, e.g. `/tmp/mlex-gemma4-only/`). An unscoped
+  run against a full local `models/` directory can appear to hang for a
+  very long time and/or exhaust all available memory (see the warning at
+  the top of §5).
 - Don't assume a model's disk size predicts its test eligibility — always
   go through `registry()`/`registryForFamily()`, never hardcode a path.
 - Don't forget `npm run build` after touching `mlex-node`/`mlex` Rust code
